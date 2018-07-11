@@ -1,0 +1,60 @@
+<root>
+	<title>"trade"</title>
+	<width>800</width>
+	<height>600</height>
+	
+	<widget>
+		<Notebook>
+			<mount>
+				<method>"pack"</method>
+				<param>
+					<expand>1</expand>
+					<fill>"both"</fill>
+				</param>
+			</mount>
+			<tab id=0>
+				<name>'分析'</name>
+				<img></img>
+				<color></color>
+				<font></font>
+				<widget>
+					<radio id=0>
+						
+					</radio>
+				</widget>
+			</tab>
+			<tab id=1>
+				<name>'分析'</name>
+				<img></img>
+				<color></color>
+				<font></font>
+				<widget>
+				</widget>
+			</tab>
+			<tab id=2>
+				<name>'交易'</name>
+				<img></img>
+				<color></color>
+				<font></font>
+				<widget>
+				</widget>
+			</tab>
+			<tab id=3>
+				<name>'机器人'</name>
+				<img></img>
+				<color></color>
+				<font></font>
+				<widget>
+				</widget>
+			</tab>
+			<tab id=4>
+				<name>'日志'</name>
+				<img></img>
+				<color></color>
+				<font></font>
+				<widget>
+				</widget>
+			</tab>
+		</Notebook>
+	</widget>
+</root>
