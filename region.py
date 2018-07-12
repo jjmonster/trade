@@ -1,30 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import config
 from market import market
 import threading
 import time
 
 class region:
-    def __init__(self, count):
+    def __init__(self):
         self.reg = list()
-        self.r_count = count
+        self.r_count = 10
         self.running = 0      #start or stop thread
         self.update_interval = 1  #time interval
         self.r_i_history = list()  #contain the region index number of past 10m
         self.n_r_i_his = 10*60/self.update_interval #max number of the region index history
         self.mkt = market()
-        self.mkt.start()
+
+    def get(self):
+        return self.reg
+    
+    def get_reg_his(self):
+        return self.r_i_history
 
     def create(self, highest, lowest): #not consider current price
         average = (highest-lowest)/self.r_count/2  #linear??
+        while average/lowest < 0.01:  #region0 have 1% gap
+            self.r_count -= 1
+            average = (highest-lowest)/self.r_count/2
+            
         middle = (highest-lowest)/2 + lowest
+        #print("average:%f middle:%f, region0 gap:%f"%(average, middle, average/lowest))
+        if len(self.reg) > 0:
+            self.reg.clear()
         for i in range(self.r_count):
             r = dict()
-            i += 1
             r['i'] = i                 #regin num
-            r['h'] = middle+average*i  #regin high
-            r['l'] = middle-average*i  #regin low
+            r['h'] = middle+average*(i+1)  #regin high
+            r['l'] = middle-average*(i+1)  #regin low
             self.reg.append(r)
 
     def amend(self):
@@ -37,19 +49,22 @@ class region:
         for r in self.reg:
             r['h'] += offset
             r['l'] += offset
+
             
     def start(self):
         if self.running == 0:
             self.running = 1
+            self.mkt.start()
             thread = threading.Thread(target=self.update_region)
             thread.start()
             
     def stop(self):
         self.running = 0
+        self.mkt.stop()
     
     def update_region(self):
         while self.running == 1:
-            self.print()
+            #self.print()
             if self.mkt.running == 1:
                 p = self.mkt.get_price()
             if len(self.reg) == 0:
@@ -57,9 +72,10 @@ class region:
 
             for r in self.reg:           #get current price region
                 if p['buy'] > r['l'] and p['sell'] < r['h']:
+                    #print("got price region index=%d"%(r['i']))
                     break;
 
-            if r['i'] == self.r_count-1: #reach the largest region, price exception??
+            if r['i'] == len(self.reg)-1: #reach the largest region, price exception??
                 print("price not in any region!")
                 r_index = -1
             else:
@@ -70,17 +86,18 @@ class region:
             else:
                 self.r_i_history.pop(0)
                 self.r_i_history.append(r_index)
+            #print(self.r_i_history)
 
             num = 0
-            if len(self.r_i_history) > 10:  #
+            if len(self.r_i_history) >= 10:  #
                 if r_index != 0:
                     for i in self.r_i_history:
-                        if i != 0:             #price no in region 0.  and i!=1? 
+                        if i != 0:             #price not in region 0.  and i!=1? 
                             num += 1
                     if int(len(self.r_i_history)/num) < 2: #num of 'not in region0 '  more than half, and current price 'not in region0', so amend region
                         self.amend()
                         self.r_i_history.clear()
-                        return
+            
             time.sleep(self.update_interval)
 
 
@@ -94,15 +111,17 @@ class region:
 ##        el
 
     def print(self):
-        for i in self.reg:
-            print("region%d... h:%f, l:%f"%(i['n'], i['h'], i['l']), flush=True)
+        for r in self.reg:
+            print("region%d... h:%f, l:%f"%(r['i'], r['h'], r['l']))
+        print("\n")
 
 
 
 if __name__ == '__main__':
-    r = region(10)
+    config.load_cfg_all()
+    r = region()
     r.start()
-    time.sleep(30)
+    time.sleep(600)
     r.stop()
     
             

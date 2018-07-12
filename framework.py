@@ -24,20 +24,13 @@ class frmwk():
             plat = config.get_cfg_plat()
             if plat == 'coinex':
                 return float(self.cet.acquire_market_data(pair)['last'])
-                #data = self.cet.acquire_market_data(pair)
-                #price['buy'] = data['buy']    #buy 1
-                #price['high'] = data['high']  #24H highest price
-                #price['last'] = data['last']  #latest price
-                #price['low'] = data['low']    #24H lowest price
-                #price['sell'] = data['sell']  #sell 1
-                #price['vol'] = data['vol']    #24H volume
             elif plat == 'fcoin':
                 print("")
                 #data = self.ft.get_market_ticker(pair)
                 #########parse data not complate
         except:
                 print("Exception on get_price!")
-        #return price
+
 
     def get_price(self, pair):
         price = defaultdict(lambda: None)
@@ -46,12 +39,12 @@ class frmwk():
             if plat == 'coinex':
                 #return float(self.cet.acquire_market_data(pair)['last'])
                 data = self.cet.acquire_market_data(pair)
-                price['buy'] = data['buy']    #buy 1
-                price['high'] = data['high']  #24H highest price
-                price['last'] = data['last']  #latest price
-                price['low'] = data['low']    #24H lowest price
-                price['sell'] = data['sell']  #sell 1
-                price['vol'] = data['vol']    #24H volume
+                price['buy'] = float(data['buy'])    #buy 1
+                price['high'] = float(data['high'])  #24H highest price
+                price['last'] = float(data['last'])  #latest price
+                price['low'] = float(data['low'])    #24H lowest price
+                price['sell'] = float(data['sell'])  #sell 1
+                price['vol'] = float(data['vol'])    #24H volume
             elif plat == 'fcoin':
                 print("")
                 #data = self.ft.get_market_ticker(pair)
@@ -156,6 +149,7 @@ class frmwk():
             print("Exception on sell!")
 
     def list_orders(self, pair):
+        data = []
         try:
             plat = config.get_cfg_plat()
             if plat == 'coinex':
@@ -166,6 +160,7 @@ class frmwk():
         except:
             print("Exception on list_orders!")
         return data
+
     
     def cancel_order(self, pair, id):
         try:

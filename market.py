@@ -15,7 +15,8 @@ class market:
 
     def get_price(self):
         while len(self.price) == 0:
-            print("waiting to get price...", flush=True)
+            print("waiting to get price...")
+            #print(self.price)
             time.sleep(1)
         return self.price
 
@@ -33,8 +34,7 @@ class market:
         while self.running == 1:
             pair = config.get_cfg("coin1")+config.get_cfg("coin2")
             self.price = self.fwk.get_price(pair)
-            #print(self.price, flush=True)
-            #time.sleep(1)
+            time.sleep(0.3)
 
 
 if __name__ == '__main__':
