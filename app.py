@@ -5,12 +5,14 @@ import os
 import sys
 import math
 import time
+import threading
+import json
+
 import config
 from framework import frmwk
+from market import market
 from region import region
-from threading import Thread
 from playsound import playsound
-import json
 
 
 class app():
@@ -45,6 +47,7 @@ class app():
         self.frmwk = frmwk()
         self.exchange = 0
         self.reg = region()
+        self.mkt = market()
         
         #self.orig_balance=self.frmwk.get_balance_all()
         self.robot_running = 0
@@ -75,7 +78,16 @@ class app():
 
     def process(self):
         reg = self.reg.get() #### how to use it?
-        print(reg)
+        #print(reg)
+        #balance = self.mkt.get_balance()
+        #print(balance)
+        depth = self.mkt.get_depth()
+        #print(depth)
+        buy=depth['buy'][0]
+        sell=depth['sell'][0]
+        print(buy)
+        print(sell)
+
         
 ##        total_buy_funds = 0.0
 ##        total_sell_funds = 0.0
@@ -172,18 +184,16 @@ class app():
 
     def robot(self):
         while self.robot_running == 1:
-            try:
-                self.process()
-            except:
-                print('something error at privious process!')
+            self.process()
             time.sleep(3)
 
     def start_robot(self):
+        self.mkt.start()
         self.reg.start()
         if self.robot_running == 0:
             print("robot starting...")
             self.robot_running = 1
-            thread = Thread(target=self.robot)
+            thread = threading.Thread(target=self.robot)
             thread.start()
         else:
             print("robot already running!")
@@ -193,6 +203,7 @@ class app():
             print("robot stopping...")
             self.robot_running = 0
             self.reg.stop()
+            self.mkt.stop()
 
                 
     def buy_order(self):
@@ -301,7 +312,7 @@ class app():
         print("start_parse_market_depth...")
         if self.parse_market_depth_running == 0:
             self.parse_market_depth_running = 1
-            thread = Thread(target=self.parse_market_depth)
+            thread = threading.Thread(target=self.parse_market_depth)
             thread.start()
             
     def stop_parse_market_depth(self):
