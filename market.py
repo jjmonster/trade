@@ -37,14 +37,14 @@ class market:
             self.running = 1
             self.update_price()
             #self.update_balance()
-            self.update_depth()
+            #self.update_depth()
             
         
     def stop(self):
         self.running = 0
         self.p_timer.cancel()
         #self.b_timer.cancel()
-        self.d_timer.cancel()
+        #self.d_timer.cancel()
 
     def update_balance(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")

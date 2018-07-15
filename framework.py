@@ -53,17 +53,6 @@ class frmwk():
                 print("Exception on get_price!")
         return price
 
-    def get_market_depth(self, pair):
-        try:
-            plat = config.get_cfg_plat()
-            if plat == 'coinex':
-                return self.cet_acquire_market_depth(pair)
-            elif plat == 'fcoin':
-                return False
-        except:
-            print("Exception on get_market_depth!")
-            return False
-
     def get_price_all(self):
         try:
             plat = config.get_cfg_plat()
@@ -75,19 +64,40 @@ class frmwk():
                 print("Exception on get_price_all!")
         return ticker
 
+    def s2f(self, data):
+        m=n=0
+        if isinstance(data, str):
+            data = float(data)
+        elif isinstance(data,list) and len(data) > 0:
+            for i in data:            
+                if isinstance(i,str):
+                    data[m] = float(i)
+                elif isinstance(i,list) and len(i) > 0:
+                    for j in i:
+                        data[m][n] = float(j)
+                        n+=1
+                    n = 0
+                else:
+                    print("unknown data type!", type(i))
+                m+=1
+            m = 0
+        else:
+            print("unknown data type!", type(data))
+        return data                
+        
     def get_market_depth(self, pair):
-        data = defaultdict(lambda: None)
+        depth = defaultdict(lambda: None)
         try:
             plat = config.get_cfg_plat()
             if plat == 'coinex':
                 data = self.cet.acquire_market_depth(pair)
-                data['buy'] = data.pop('bids')
-                data['sell'] = data.pop('asks')
+                depth['buy'] = self.s2f(data.pop('bids'))
+                depth['sell'] = self.s2f(data.pop('asks'))
             elif plat == 'fcoin':
                 pirnt("")
         except:
                 print("Exception on get_market_depth!")
-        return data
+        return depth
 
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)
@@ -121,6 +131,46 @@ class frmwk():
             print("Exception on get_balance_all!")
 
         return balance
+
+    def buy_limit(self, pair, price, amount):
+        try:
+            plat = config.get_cfg_plat()
+            if plat == 'coinex':
+                return self.cet.buy_limit(pair, amount, price)
+            elif plat == 'fcoin':
+                print("")
+        except:
+            print("Exception on buy!")
+
+    def sell_limit(self, pair, price, amount):
+        try:
+            plat = config.get_cfg_plat()
+            if plat == 'coinex':
+                return self.cet.sell_limit(pair, amount, price)
+            elif plat == 'fcoin':
+                print("")
+        except:
+            print("Exception on sell!")    
+    
+    def buy_market(self, pair, price, amount):
+        try:
+            plat = config.get_cfg_plat()
+            if plat == 'coinex':
+                return self.cet.buy_market(pair, amount, price)
+            elif plat == 'fcoin':
+                print("")
+        except:
+            print("Exception on buy!")
+            
+    def sell_market(self, pair, price, amount):
+        try:
+            plat = config.get_cfg_plat()
+            if plat == 'coinex':
+                return self.cet.sell_market(pair, amount, price)
+            elif plat == 'fcoin':
+                print("")
+        except:
+            print("Exception on sell!")
 
     def buy(self, pair, price, amount, buy_type):
         try:

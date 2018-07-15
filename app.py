@@ -28,6 +28,7 @@ class app():
             (self.cancel_order_all,"cancel all order."),
             (self.print_balance_all, "get all balance"),
             (self.cancel_order_pair,"cancel order pair"),
+            (self.print_market_depth, "print market depth"),
             (self.start_parse_market_depth,"start parse market depth"),
             (self.stop_parse_market_depth,"stop parse market depth"),
             (self.start_robot,"start robot."),
@@ -48,6 +49,9 @@ class app():
         self.exchange = 0
         self.reg = region()
         self.mkt = market()
+        self.trade_history = list()
+        self.amount_hold = 0
+        self.hold_max = 1000
         
         #self.orig_balance=self.frmwk.get_balance_all()
         self.robot_running = 0
@@ -76,18 +80,55 @@ class app():
             if i[1]['available'] > 0 or i[1]['frozen'] > 0:
                 print("%s\t %f\t %f\t %f"%(i[0],i[1]['available'], i[1]['frozen'], i[1]['balance']))
 
+    def buy_market(self, pair, price, amount):
+        try:
+            #self.mkt.buy_market(pair, price, amount) #comment this for test
+            self.amount_hold += amount
+            self.trade_history.append([price, amount])
+        except:
+            print("exception buy market!")
+
+    def sell_market(self, pair, price, amount):
+        try:
+            #self.mkt.sell_market(pair, price, amount) #comment this for test
+            amount = -amount
+            self.amount_hold += amount
+            self.trade_history.append([price, amount])
+        except:
+            print("exception sell market!")
+        
     def process(self):
-        reg = self.reg.get() #### how to use it?
-        #print(reg)
+        reg = self.reg.get()
+        r0h = reg[0]['h']
+        r0l = reg[0]['l']
+
         #balance = self.mkt.get_balance()
         #print(balance)
-        depth = self.mkt.get_depth()
-        #print(depth)
-        buy=depth['buy'][0]
-        sell=depth['sell'][0]
-        print(buy)
-        print(sell)
 
+        #depth = self.mkt.get_depth()
+        depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
+        bp = depth['buy'][0][0]  #price buy
+        ba = depth['buy'][0][1]  #amount buy
+        sp = depth['sell'][0][0] #price sell
+        sa = depth['sell'][0][1] #amount sell
+
+        gap = (sp-bp)*100/((sp+bp)/2)
+        print(reg[0], "bp:",bp, "sp:", sp, "gap:",gap)
+        
+        if bp < r0h*(1+0.001) and bp > r0h*(1-0.001) and gap < 0.2:
+            if self.amount_hold > 0:
+                self.sell_market(self.pair, bp, min(ba, self.amount_hold))
+                print("sell_market! gap=%f buy=%f reg0h=%f"%(gap, bp, r0h))
+
+        
+        if sp < r0l*(1+0.001) and sp > r0l*(1-0.001) and gap < 0.2:
+            a = self.hold_max - self.amount_hold
+            if a > 0:
+                self.buy_market(self.pair, sp, min(a, sa))
+                print("buy_market! gap=%f sell=%f reg0l=%f"%(gap, sp, r0l))
+
+        if len(self.trade_history) > 0:
+            print("trade history: ", self.trade_history)
         
 ##        total_buy_funds = 0.0
 ##        total_sell_funds = 0.0
@@ -272,6 +313,10 @@ class app():
     def cancel_order_pair(self):
         return self.frmwk.cancel_order_pair(self.pair)
 
+    def print_market_depth(self):
+        depth = self.frmwk.get_market_depth(self.pair)
+        print(depth)
+        
     def parse_market_depth(self):
         while self.parse_market_depth_running == 1:
             md = self.frmwk.get_market_depth(self.pair)
