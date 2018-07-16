@@ -64,7 +64,7 @@ class frmwk():
                 print("Exception on get_price_all!")
         return ticker
 
-    def s2f(self, data):
+    def s2f(self, data):  #str convert to float. 
         m=n=0
         if isinstance(data, str):
             data = float(data)
@@ -74,7 +74,8 @@ class frmwk():
                     data[m] = float(i)
                 elif isinstance(i,list) and len(i) > 0:
                     for j in i:
-                        data[m][n] = float(j)
+                        if isinstance(j, str):
+                            data[m][n] = float(j)
                         n+=1
                     n = 0
                 else:
@@ -259,5 +260,21 @@ class frmwk():
                 return False
         except:
             print("Exception on cancel_order_all!")
+
+    def get_K_line(self, pair, limit=10, dtype="1hour"):
+        try:
+            plat = config.get_cfg_plat()
+            if plat == 'coinex':
+                data = self.cet.acquire_K_line_data(pair, limit, dtype)
+                if len(data) > 0:
+                    for i in data:
+                        i.pop()  ##remove the last pair string
+                data = self.s2f(data)
+                return data
+            elif plat == 'fcoin':
+                return False
+        except:
+            print("Exception on cancel_order_all!")
+
 
 

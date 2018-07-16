@@ -98,7 +98,7 @@ class coinex():
         """Acquire latest transaction data，return up to 1000"""
         return self.public_request('GET', '/market/deals?market={market}&last_id={last_id}'.format(market=market, last_id=last_id))['data']
 
-    def acquire_K_line_data(self, market, limit=1, dtype="1hour"):
+    def acquire_K_line_data(self, market, limit=10, dtype="1hour"):
         """Acquire k-line data for specified period, including latest 1000 datas"""
         return self.public_request('GET', '/market/kline?market={market}&limit={limit}&type={dtype}'.format(market=market, limit=limit, dtype=dtype))['data']
 
@@ -176,12 +176,14 @@ class coinex():
 if __name__ == '__main__':
     """test this class"""
     cex = coinex()
+    config.load_cfg_all()
+    config.load_cfg_header()
     #print(cex.acquire_market_data('CETUSDT'))
     #print(cex.acquire_market_data_all())
     #print(cex.acquire_market_depth('CETUSDT'))
     #print(cex.acquire_latest_transaction_data('CETUSDT'))
-    #print(cex.acquire_K_line_data('CETUSDT'))
-    print(cex.inquire_account_info())
+    print(cex.acquire_K_line_data('CETUSDT'))
+    #print(cex.inquire_account_info())
     #print(cex.acquire_unfinished_order_list('CETUSDT'))
     #print(cex.acquire_finished_order_list('CETUSDT'))
     #print(cex.acquire_user_deal('CETUSDT'))

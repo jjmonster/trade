@@ -107,6 +107,10 @@ class app():
 
         #depth = self.mkt.get_depth()
         depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
+        if len(depth) <= 0:
+            print("Fail get depth!")
+            return
+            
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
