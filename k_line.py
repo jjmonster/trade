@@ -1,5 +1,9 @@
 import matplotlib.pyplot as plt
-from matplotlib.finance import candlestick_ohlc
+#import mpl_finance
+from mpl_finance import candlestick_ochl
+from datetime import datetime
+import matplotlib.dates as mdates
+
 from framework import frmwk
 import config
 
@@ -9,17 +13,27 @@ class kline:
         self.fwk = frmwk()
 
     def gather_data(self, pair):
-        self.ohlc = self.fwk.get_K_line(pair)
-        print(self.ohlc)
+        self.ochl = self.fwk.get_K_line(pair, limit=10, dtype="1day") #t o c h l v a
+        self.amount = [i.pop() for i in self.ochl]
+        self.volume = [i.pop() for i in self.ochl]
+        #self.date = [i.pop(0) for i in self.ochl]
+        #date = [datetime.fromtimestamp(i[0]) for i in self.ochl]
+        #print(date)
+        print(self.ochl)
         
 
     def graph(self, pair):
         self.gather_data(pair)
         plt.figure()
-        ax1 = plt.subplot2grid((1,1), (0,0)) # only one grid
-        candlestick_ohlc(ax1, self.ohlc, width=0.4, colorup='#77d879', colordown='#db3f3f')
-        plt.xlabel('Date')
-        plt.ylabel('Price')
+        ax1 = plt.subplot2grid((1,1), (0,0)) # only one grid        
+        candlestick_ochl(ax1, self.ochl) # width=0.8, colorup='#77d879', colordown='#db3f3f')
+        #ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        ax1.xaxis.set_major_locator(mdates.DayLocator())
+        ax1.xaxis_date()
+        ax1.grid(True)
+        plt.xticks(rotation=30)
+        #plt.xlabel('Date')
+        #plt.ylabel('Price')
         plt.show()
 
 
