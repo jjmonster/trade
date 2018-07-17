@@ -9,7 +9,7 @@ import time
 class region:
     def __init__(self):
         self.reg = list()
-        self.r_count = 10
+        self.r_count = 100
         self.running = 0      #start or stop thread
         self.update_interval = 1  #time interval
         self.r_i_history = list()  #contain the region index number of past 10m
@@ -21,7 +21,12 @@ class region:
             print("waiting to get region...")
             time.sleep(1)
         return self.reg
-    
+    def get_reg_count(self):
+        while self.r_count == 100:
+            print("waiting for region crteate...")
+            time.sleep(1)
+        return self.r_count
+        
     def get_reg_his(self):
         while len(self.r_i_history) == 0:
             print("waiting to get region index history...")
