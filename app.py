@@ -97,7 +97,7 @@ class app():
         except:
             print("exception sell market!")
         
-    def process(self):
+    def process(self, depth):
         reg = self.reg.get()
         r0h = reg[0]['h']
         r0l = reg[0]['l']
@@ -106,7 +106,7 @@ class app():
         #print(balance)
 
         #depth = self.mkt.get_depth()
-        depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
+        #depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
         if len(depth) <= 0:
             print("Fail get depth!")
             return
@@ -233,13 +233,14 @@ class app():
             time.sleep(3)
 
     def start_robot(self):
-        self.mkt.start()
-        self.reg.start()
         if self.robot_running == 0:
             print("robot starting...")
-            self.robot_running = 1
-            thread = threading.Thread(target=self.robot)
-            thread.start()
+            self.robot_running = 1            
+            self.mkt.register_handle('price', self.reg.update_region)
+            self.mkt.register_handle('depth', self.process)
+            self.mkt.start()
+            #thread = threading.Thread(target=self.robot)
+            #thread.start()
         else:
             print("robot already running!")
 
@@ -247,7 +248,6 @@ class app():
         if self.robot_running == 1:
             print("robot stopping...")
             self.robot_running = 0
-            self.reg.stop()
             self.mkt.stop()
 
                 
@@ -372,11 +372,14 @@ class app():
     def reserved(self):
         return
 
+
     def exit(self):
         if self.robot_running == 1:
             self.stop_robot()
         if self.parse_market_depth_running == 1:
             self.stop_parse_market_depth()
+        if self.mkt.running == 1:
+            self.mkt.stop()
         exit()
 
     def help_menu(self):

@@ -48,7 +48,7 @@ class market:
             self.running = 1
             self._update_price()
             #self._update_balance()
-            #self._update_depth()
+            self._update_depth()
             self._update_kline()
             
         
@@ -56,14 +56,15 @@ class market:
         self.running = 0
         self._p_timer.cancel()
         #self._b_timer.cancel()
-        #self._d_timer.cancel()
+        self._d_timer.cancel()
         self._k_timer.cancel()
 
     def _update_balance(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.balance = self._fwk.get_balance(pair)
-        for h in self.data_handles['balance']:
-            h(self.balance)
+        if len(self.balance) > 0:
+            for h in self.data_handles['balance']:
+                h(self.balance)
         if self.running == 1:
             self._b_timer = threading.Timer(1, self._update_balance)
             self._b_timer.start()
@@ -72,8 +73,9 @@ class market:
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.price = self._fwk.get_price(pair)
         #print(self.price)
-        for h in self.data_handles['price']:
-            h(self.price)
+        if len(self.price) > 0:
+            for h in self.data_handles['price']:
+                h(self.price)
         if self.running == 1:
             self._p_timer = threading.Timer(1, self._update_price)
             self._p_timer.start()
@@ -82,8 +84,9 @@ class market:
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.depth = self._fwk.get_market_depth(pair)
         #print(self.depth)
-        for h in self.data_handles['depth']:
-            h(self.depth)
+        if len(self.depth) > 0:
+            for h in self.data_handles['depth']:
+                h(self.depth)
         if self.running == 1:
             self._d_timer = threading.Timer(1, self._update_depth)
             self._d_timer.start()
@@ -92,10 +95,11 @@ class market:
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.kline = self._fwk.get_K_line(pair, limit=10, dtype="1day")
         #print(self.kline)
-        for h in self.data_handles['kline']:
-            h(self.kline)
+        if len(self.kline) > 0:
+            for h in self.data_handles['kline']:
+                h(self.kline)
         if self.running == 1:
-            self._k_timer = threading.Timer(10, self._update_kline)
+            self._k_timer = threading.Timer(3600, self._update_kline)
             self._k_timer.start()
 
     def register_handle(self, dtype, func):

@@ -274,7 +274,7 @@ class frmwk():
             elif plat == 'fcoin':
                 return False
         except:
-            print("Exception on cancel_order_all!")
+            print("Exception on get_K_line!")
 
 
 
