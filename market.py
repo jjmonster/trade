@@ -5,11 +5,14 @@ import config
 from framework import frmwk
 import threading
 import time
+from collections import defaultdict
+
 
 class market:
     def __init__(self):
-        self.fwk = frmwk()
+        self._fwk = frmwk()
         self.running = 0
+        self.data_handles = defaultdict(lambda:[])
         
 
     def get_price(self):
@@ -43,50 +46,63 @@ class market:
     def start(self):
         if self.running == 0:
             self.running = 1
-            self.update_price()
-            #self.update_balance()
-            #self.update_depth()
-            self.update_kline()
+            self._update_price()
+            #self._update_balance()
+            #self._update_depth()
+            self._update_kline()
             
         
     def stop(self):
         self.running = 0
-        self.p_timer.cancel()
-        #self.b_timer.cancel()
-        #self.d_timer.cancel()
-        self.k_timer.cancel()
+        self._p_timer.cancel()
+        #self._b_timer.cancel()
+        #self._d_timer.cancel()
+        self._k_timer.cancel()
 
-    def update_balance(self):
+    def _update_balance(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
-        self.balance = self.fwk.get_balance(pair)
+        self.balance = self._fwk.get_balance(pair)
+        for h in self.data_handles['balance']:
+            h(self.balance)
         if self.running == 1:
-            self.b_timer = threading.Timer(1, self.update_balance)
-            self.b_timer.start()
+            self._b_timer = threading.Timer(1, self._update_balance)
+            self._b_timer.start()
 
-    def update_price(self):
+    def _update_price(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
-        self.price = self.fwk.get_price(pair)
+        self.price = self._fwk.get_price(pair)
         #print(self.price)
+        for h in self.data_handles['price']:
+            h(self.price)
         if self.running == 1:
-            self.p_timer = threading.Timer(1, self.update_price)
-            self.p_timer.start()
+            self._p_timer = threading.Timer(1, self._update_price)
+            self._p_timer.start()
 
-    def update_depth(self):
+    def _update_depth(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
-        self.depth = self.fwk.get_market_depth(pair)
+        self.depth = self._fwk.get_market_depth(pair)
         #print(self.depth)
+        for h in self.data_handles['depth']:
+            h(self.depth)
         if self.running == 1:
-            self.d_timer = threading.Timer(1, self.update_depth)
-            self.d_timer.start()
+            self._d_timer = threading.Timer(1, self._update_depth)
+            self._d_timer.start()
 
-    def update_kline(self):
+    def _update_kline(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
-        self.kline = self.fwk.get_K_line(pair, limit=10, dtype="1day")
+        self.kline = self._fwk.get_K_line(pair, limit=10, dtype="1day")
         #print(self.kline)
+        for h in self.data_handles['kline']:
+            h(self.kline)
         if self.running == 1:
-            self.k_timer = threading.Timer(10, self.update_kline)
-            self.k_timer.start()
+            self._k_timer = threading.Timer(10, self._update_kline)
+            self._k_timer.start()
 
+    def register_handle(self, dtype, func):
+        self.data_handles[dtype].append(func)
+
+    def unregister_handle(self, dtype, func):
+        self.data_handles[dtype].remove(func)
 
 
 if __name__ == '__main__':

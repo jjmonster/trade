@@ -5,6 +5,15 @@ from tkinter import *
 from tkinter import ttk
 from collections import OrderedDict
 
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from k_line import kline
+
+
+
+
 
 class app:
     def __init__(self):
@@ -15,6 +24,7 @@ class app:
         self.plat=("okex","coinex","fcoin")
         self.platvar = StringVar()
         self.platvar.set(0)
+        self.kl = kline()
 
     def mainloop(self):
         self.win.mainloop()
@@ -27,6 +37,7 @@ class app:
         tab.pack(expand=1, fill="both")
         self.tab_analysis_layout(self.tabs['分析'])
         self.tab_debug_layout(self.tabs['debug'])
+        self.tab_market_layout(self.tabs['行情'])
         
 
     def debug_label_update(self):
@@ -43,11 +54,14 @@ class app:
             Radiobutton(lf, variable=variable, value=self.plat[i],
                         text=self.plat[i],indicatoron=0, width=10,
                         command=self.debug_label_update).pack()
-        lf.pack()
-        return
+        return lf
         
     def tab_analysis_layout(self, parent):
-        self.plat_select_widget(parent, self.platvar)
+        wg = self.plat_select_widget(parent, self.platvar)
+        wg.pack()
+        
+
+    def tab_market_layout(self, parent):
         return
         
 
