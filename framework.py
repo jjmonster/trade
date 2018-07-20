@@ -1,3 +1,4 @@
+from logger import log
 from config import get_cfg_plat
 from utils import digits, s2f
 from coinex import coinex
@@ -18,7 +19,7 @@ class frmwk():
             elif plat == 'fcoin':
                 return None
         except:
-            print("Exception on get_all_pair!")
+            log.err("Exception on get_all_pair!")
 
     def get_last_price(self,pair):
         try:
@@ -30,7 +31,7 @@ class frmwk():
                 #data = self.ft.get_market_ticker(pair)
                 #########parse data not complate
         except:
-                print("Exception on get_price!")
+            log.err("Exception on get_price!")
 
 
     def get_price(self, pair):
@@ -51,7 +52,7 @@ class frmwk():
                 #data = self.ft.get_market_ticker(pair)
                 #########parse data not complate
         except:
-                print("Exception on get_price!")
+            log.err("Exception on get_price!")
         return price
 
     def get_price_all(self):
@@ -62,7 +63,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-                print("Exception on get_price_all!")
+            log.err("Exception on get_price_all!")
         return ticker
 
     def get_market_depth(self, pair):
@@ -76,7 +77,7 @@ class frmwk():
             elif plat == 'fcoin':
                 pirnt("")
         except:
-                print("Exception on get_market_depth!")
+            log.err("Exception on get_market_depth!")
         return depth
 
     def get_balance(self, symbol):
@@ -91,7 +92,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on get_balance!")
+            log.err("Exception on get_balance!")
         return balance
 
     def get_balance_all(self):
@@ -108,7 +109,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on get_balance_all!")
+            log.err("Exception on get_balance_all!")
 
         return balance
 
@@ -120,7 +121,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on buy!")
+            log.err("Exception on buy!")
 
     def sell_limit(self, pair, price, amount):
         try:
@@ -130,7 +131,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on sell!")    
+            log.err("Exception on sell!")    
     
     def buy_market(self, pair, price, amount):
         try:
@@ -140,7 +141,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on buy!")
+            log.err("Exception on buy!")
             
     def sell_market(self, pair, price, amount):
         try:
@@ -150,7 +151,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on sell!")
+            log.err("Exception on sell!")
 
     def buy(self, pair, price, amount, buy_type):
         try:
@@ -163,7 +164,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on buy!")
+            log.err("Exception on buy!")
 
     def sell(self, pair, price, amount, sell_type):
         try:
@@ -176,7 +177,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on sell!")
+            log.err("Exception on sell!")
 
     def list_orders(self, pair):
         data = []
@@ -188,7 +189,7 @@ class frmwk():
             elif plat == 'fcoin':
                 print("")
         except:
-            print("Exception on list_orders!")
+            log.err("Exception on list_orders!")
         return data
 
     
@@ -205,7 +206,7 @@ class frmwk():
             elif plat == 'fcoin':
                 return False
         except:
-            print("Exception on cancel_order pair:%s id:%d!"%(pair, id))
+            log.err("Exception on cancel_order pair:%s id:%d!"%(pair, id))
 
     def cancel_order_pair(self, pair):
         try:
@@ -216,14 +217,14 @@ class frmwk():
                 for i in range(len(order_list)):
                     #print(order_list[i]['id'])
                     status = self.cancel_order(pair, order_list[i]['id'])
-                    print(status)
+                    log.info(status)
                     if status == False:
-                        print("Fail cancel order id:%d status:%s"%(i['id'], status))
+                        log.err("Fail cancel order id:%d status:%s"%(i['id'], status))
                 return status
             elif plat == 'fcoin':
                 return False
         except:
-            print("Exception on cancel_order_pair!")
+            log.err("Exception on cancel_order_pair!")
 
     def cancel_order_all(self):
         try:
@@ -232,13 +233,13 @@ class frmwk():
                 for i in self.get_all_pair():
                     status = self.cancel_order_pair(i)
                     if status == False:
-                        print("Fail cancel order %s!"%i)
+                        log.err("Fail cancel order %s!"%i)
                         return False
                 return True
             elif plat == 'fcoin':
                 return False
         except:
-            print("Exception on cancel_order_all!")
+            log.err("Exception on cancel_order_all!")
 
     def get_K_line(self, pair, limit=10, dtype="1hour"):
         try:
@@ -253,7 +254,7 @@ class frmwk():
             elif plat == 'fcoin':
                 return False
         except:
-            print("Exception on get_K_line!")
+            log.err("Exception on get_K_line!")
 
 
 

@@ -8,6 +8,7 @@ import threading
 import json
 
 import config
+from logger import log
 from utils import digits, s2f
 from framework import frmwk
 from market import market
@@ -82,7 +83,7 @@ class app():
             self.amount_hold += amount
             self.trade_history.append([price, amount])
         except:
-            print("exception buy market!")
+            log.deg("exception buy market!")
 
     def sell_market(self, pair, price, amount):
         try:
@@ -91,7 +92,7 @@ class app():
             self.amount_hold += amount
             self.trade_history.append([price, amount])
         except:
-            print("exception sell market!")
+            log.err("exception sell market!")
         
     def process(self, depth):
         reg = self.reg.get()
@@ -105,7 +106,7 @@ class app():
         #depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
         #print(depth)
         if len(depth) <= 0:
-            print("Fail get depth!")
+            log.err("Fail get depth!")
             return
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
@@ -113,23 +114,23 @@ class app():
         sa = depth['sell'][0][1] #amount sell
 
         gap = digits((sp-bp)*100/((sp+bp)/2), 6)
-        print("r0: ", reg[0], "bp:",bp,"sp:",sp,"gap:",gap)
-        print("sell offset:",round(r0h-bp, 6), "buy offset:",round(sp-r0l,6))
+        log.info("r0:%s bp:%f sp:%f gap:%f"%(reg[0],bp,sp,gap))
+        log.info("sell offset:%.6f buy offset:%.6f"%(r0h-bp, sp-r0l))
         
         if bp < r0h*(1+0.001) and bp > r0h*(1-0.001) and gap < 0.2:
             if self.amount_hold > 0:
                 self.sell_market(self.pair, bp, min(ba, self.amount_hold))
-                print("sell_market! gap=%f buy=%f reg0h=%f"%(gap, bp, r0h))
+                log.info("sell_market! gap=%f buy=%f reg0h=%f"%(gap, bp, r0h))
 
         
         if sp < r0l*(1+0.001) and sp > r0l*(1-0.001) and gap < 0.2:
             a = self.hold_max - self.amount_hold
             if a > 0:
                 self.buy_market(self.pair, sp, min(a, sa))
-                print("buy_market! gap=%f sell=%f reg0l=%f"%(gap, sp, r0l))
+                log.info("buy_market! gap=%f sell=%f reg0l=%f"%(gap, sp, r0l))
 
         if len(self.trade_history) > 0:
-            print("trade history: ", self.trade_history)
+            log.info("trade history: %s"%self.trade_history)
         
 ##        total_buy_funds = 0.0
 ##        total_sell_funds = 0.0
@@ -231,7 +232,7 @@ class app():
 
     def start_robot(self):
         if self.robot_running == 0:
-            print("robot starting...")
+            log.dbg("robot starting...")
             self.robot_running = 1            
             self.mkt.register_handle('price', self.reg.update_region)
             self.mkt.register_handle('depth', self.process)
@@ -239,11 +240,11 @@ class app():
             #thread = threading.Thread(target=self.robot)
             #thread.start()
         else:
-            print("robot already running!")
+            log.dbg("robot already running!")
 
     def stop_robot(self):
         if self.robot_running == 1:
-            print("robot stopping...")
+            log.dbg("robot stopping...")
             self.robot_running = 0
             self.mkt.stop()
 
@@ -261,14 +262,14 @@ class app():
         av = self.frmwk.get_balance(self.coin2)['available']
         amount = digits(av / price * percentage, amount_decimal_limit)
         if amount < amount_limit:
-            print("Fail buy! amount=%f available=%f limit=%f"%(amount, av, amount_limit))
+            log.err("Fail buy! amount=%f available=%f limit=%f"%(amount, av, amount_limit))
             return
-        print("creating buy order... pair:%s price:%f amount:%f"%(pair, price, amount))
+        log.info("creating buy order... pair:%s price:%f amount:%f"%(pair, price, amount))
         try:
             #self.frmwk.buy(pair, price, amount, buy_type)
-            print("success")
+            log.info("success")
         except:
-            print("Fail create buy order!")
+            log.err("Fail create buy order!")
         
 
     def sell_order(self):
@@ -286,14 +287,14 @@ class app():
         if amount < amount_limit and av >= amount_limit:
             amount = amount_limit
         elif amount > av or av < amount_limit:
-            print("Fail sell! amount=%f available=%f limit=%f"%(amount, av, amount_limit))
+            log.err("Fail sell! amount=%f available=%f limit=%f"%(amount, av, amount_limit))
             return
-        print("going to create sell order... pair:%s price:%f amount:%f"%(pair, price, amount))
+        log.info("going to create sell order... pair:%s price:%f amount:%f"%(pair, price, amount))
         try:
             #self.frmwk.sell(pair, price, amount, sell_type)
-            print("success")
+            log.info("success")
         except:
-            print("Fail create sell order!")
+            log.err("Fail create sell order!")
 
     def print_price(self):
         try:
@@ -329,7 +330,7 @@ class app():
                 total_sell_funds = 0.0
                 buy_max = 0.0
                 sell_min = 9999999.0
-                print("\nmarket depth:%d"%(len(buy_list)))
+                log.dbg("\nmarket depth:%d"%(len(buy_list)))
                 for i in buy_list:
                     price = i[0]
                     amount = i[1]
@@ -341,28 +342,28 @@ class app():
                     sell_min = min(sell_min, price)
                     total_sell_funds += price * amount
                 gap = ((sell_min-buy_max)*100)/((sell_min+buy_max)/2)
-                print("Total funds buy:%f sell:%f"%(total_buy_funds, total_sell_funds), flush=True)
-                print("price buy_max:%f sell_min:%f  gap:%f%%"%(buy_max, sell_min, gap), flush=True)
+                log.info("Total funds buy:%f sell:%f"%(total_buy_funds, total_sell_funds))
+                log.info("price buy_max:%f sell_min:%f  gap:%f%%"%(buy_max, sell_min, gap))
 
                 if (total_buy_funds - total_sell_funds) > 20000 and self.exchange == 0:
-                    print("buy!!!!!!!!!", flush=True)
+                    log.war("buy!!!!!!!!!")
                     playsound("wav/3380.wav", block=False)
                     self.exchange = 1
                 elif (total_sell_funds - total_buy_funds) > 20000 and self.exchange == 1:
-                    print("sell!!!!!!!!!", flush=True)
+                    log.war("sell!!!!!!!!!")
                     playsound("wav/8858.wav", block=False)
                     self.exchange = 0
             time.sleep(3)
                 
     def start_parse_market_depth(self):
-        print("start_parse_market_depth...")
+        log.dbg("start_parse_market_depth...")
         if self.parse_market_depth_running == 0:
             self.parse_market_depth_running = 1
             thread = threading.Thread(target=self.parse_market_depth)
             thread.start()
             
     def stop_parse_market_depth(self):
-        print("stop_parse_market_depth...")
+        log.dbg("stop_parse_market_depth...")
         if self.parse_market_depth_running == 1:
             self.parse_market_depth_running = 0
         
