@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from utils import digits
 
 class region:
     def __init__(self):
@@ -41,8 +42,9 @@ class region:
     def amend(self, price):
         offset = (price['buy']+price['sell'])/2 - (self.reg[0]['h']+self.reg[0]['l'])/2
         for r in self.reg:
-            r['h'] += offset
-            r['l'] += offset
+            r['h'] = digits((r['h']+offset), 6)
+            r['l'] = digits((r['l']+offset), 6)
+
 
     def update_region(self, price):
         if len(self.reg) == 0:

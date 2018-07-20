@@ -1,4 +1,5 @@
-import config
+from config import get_cfg_plat
+from utils import digits, s2f
 from coinex import coinex
 from fcoin import fcoin
 from collections import defaultdict
@@ -10,7 +11,7 @@ class frmwk():
 
     def get_all_pair(self):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 data = self.cet.acquire_market_list()
                 return [item.lower() for item in data]
@@ -21,9 +22,9 @@ class frmwk():
 
     def get_last_price(self,pair):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
-                return float(self.cet.acquire_market_data(pair)['last'])
+                return s2f(self.cet.acquire_market_data(pair)['last'])
             elif plat == 'fcoin':
                 print("")
                 #data = self.ft.get_market_ticker(pair)
@@ -35,16 +36,16 @@ class frmwk():
     def get_price(self, pair):
         price = defaultdict(lambda: None)
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
-                #return float(self.cet.acquire_market_data(pair)['last'])
                 data = self.cet.acquire_market_data(pair)
-                price['buy'] = float(data['buy'])    #buy 1
-                price['high'] = float(data['high'])  #24H highest price
-                price['last'] = float(data['last'])  #latest price
-                price['low'] = float(data['low'])    #24H lowest price
-                price['sell'] = float(data['sell'])  #sell 1
-                price['vol'] = float(data['vol'])    #24H volume
+                #price['buy'] = s2f(data['buy'])    #buy 1
+                #price['high'] = s2f(data['high'])  #24H highest price
+                #price['last'] = s2f(data['last'])  #latest price
+                #price['low'] = s2f(data['low'])    #24H lowest price
+                #price['sell'] = s2f(data['sell'])  #sell 1
+                #price['vol'] = s2f(data['vol'])    #24H volume
+                price = s2f(data)
             elif plat == 'fcoin':
                 print("")
                 #data = self.ft.get_market_ticker(pair)
@@ -55,7 +56,7 @@ class frmwk():
 
     def get_price_all(self):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 ticker = self.cet.acquire_market_data_all()
             elif plat == 'fcoin':
@@ -64,36 +65,14 @@ class frmwk():
                 print("Exception on get_price_all!")
         return ticker
 
-    def s2f(self, data):  #str convert to float. 
-        m=n=0
-        if isinstance(data, str):
-            data = float(data)
-        elif isinstance(data,list) and len(data) > 0:
-            for i in data:            
-                if isinstance(i,str):
-                    data[m] = float(i)
-                elif isinstance(i,list) and len(i) > 0:
-                    for j in i:
-                        if isinstance(j, str):
-                            data[m][n] = float(j)
-                        n+=1
-                    n = 0
-                else:
-                    print("unknown data type!", type(i))
-                m+=1
-            m = 0
-        else:
-            print("unknown data type!", type(data))
-        return data                
-        
     def get_market_depth(self, pair):
         depth = defaultdict(lambda: None)
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 data = self.cet.acquire_market_depth(pair)
-                depth['buy'] = self.s2f(data.pop('bids'))
-                depth['sell'] = self.s2f(data.pop('asks'))
+                depth['buy'] = s2f(data.pop('bids'))
+                depth['sell'] = s2f(data.pop('asks'))
             elif plat == 'fcoin':
                 pirnt("")
         except:
@@ -103,11 +82,11 @@ class frmwk():
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 balance = self.cet.inquire_account_info()[symbol.upper()]
-                balance['available'] = float(balance['available'])
-                balance['frozen'] = float(balance['frozen'])
+                balance['available'] = s2f(balance['available'])
+                balance['frozen'] = s2f(balance['frozen'])
                 balance['balance'] = balance['available'] + balance['frozen']
             elif plat == 'fcoin':
                 print("")
@@ -118,13 +97,13 @@ class frmwk():
     def get_balance_all(self):
         balance = defaultdict(lambda: None)
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 balance = self.cet.inquire_account_info()
                 for i in balance.items():
-                    balance[i[0]]['available'] = float(i[1]['available'])
-                    balance[i[0]]['frozen'] = float(i[1]['frozen'])
-                    balance[i[0]]['balance'] = float(i[1]['available']) + float(i[1]['frozen'])
+                    balance[i[0]]['available'] = s2f(i[1]['available'])
+                    balance[i[0]]['frozen'] = s2f(i[1]['frozen'])
+                    balance[i[0]]['balance'] = s2f(i[1]['available']) + s2f(i[1]['frozen'])
                 #print(balance)
             elif plat == 'fcoin':
                 print("")
@@ -135,7 +114,7 @@ class frmwk():
 
     def buy_limit(self, pair, price, amount):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 return self.cet.buy_limit(pair, amount, price)
             elif plat == 'fcoin':
@@ -145,7 +124,7 @@ class frmwk():
 
     def sell_limit(self, pair, price, amount):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 return self.cet.sell_limit(pair, amount, price)
             elif plat == 'fcoin':
@@ -155,7 +134,7 @@ class frmwk():
     
     def buy_market(self, pair, price, amount):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 return self.cet.buy_market(pair, amount, price)
             elif plat == 'fcoin':
@@ -165,7 +144,7 @@ class frmwk():
             
     def sell_market(self, pair, price, amount):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 return self.cet.sell_market(pair, amount, price)
             elif plat == 'fcoin':
@@ -175,7 +154,7 @@ class frmwk():
 
     def buy(self, pair, price, amount, buy_type):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 if buy_type == 'limit':
                     return self.cet.buy_limit(pair, amount, price)
@@ -188,7 +167,7 @@ class frmwk():
 
     def sell(self, pair, price, amount, sell_type):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 if sell_type == 'limit':
                     return self.cet.sell_limit(pair, amount, price)
@@ -202,7 +181,7 @@ class frmwk():
     def list_orders(self, pair):
         data = []
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 data = self.cet.acquire_unfinished_order_list(pair)
                 #print(data)
@@ -215,7 +194,7 @@ class frmwk():
     
     def cancel_order(self, pair, id):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 status =  self.cet.cancel_order_list(pair, id)
                 #print(status)
@@ -230,7 +209,7 @@ class frmwk():
 
     def cancel_order_pair(self, pair):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 order_list = self.list_orders(pair)
                 #print(order_list)
@@ -248,7 +227,7 @@ class frmwk():
 
     def cancel_order_all(self):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 for i in self.get_all_pair():
                     status = self.cancel_order_pair(i)
@@ -263,13 +242,13 @@ class frmwk():
 
     def get_K_line(self, pair, limit=10, dtype="1hour"):
         try:
-            plat = config.get_cfg_plat()
+            plat = get_cfg_plat()
             if plat == 'coinex':
                 data = self.cet.acquire_K_line_data(pair, limit, dtype)
                 if len(data) > 0:
                     for i in data:
                         i.pop()  ##remove the last pair string
-                data = self.s2f(data)
+                data = s2f(data)
                 return data
             elif plat == 'fcoin':
                 return False

@@ -3,12 +3,12 @@
 #@Author  : jjia
 import os
 import sys
-import math
 import time
 import threading
 import json
 
 import config
+from utils import digits, s2f
 from framework import frmwk
 from market import market
 from region import region
@@ -69,10 +69,6 @@ class app():
     def print_config(self):
         config.print_cfg()
 
-    def digits(self, num, digit):
-        site = pow(10, digit)
-        return math.floor(num*site)/site
-
     def print_balance_all(self):
         balance = self.frmwk.get_balance_all()
         print("coin\t available\t frozen\t\t balance");
@@ -107,17 +103,18 @@ class app():
 
         #depth = self.mkt.get_depth()
         #depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
+        #print(depth)
         if len(depth) <= 0:
             print("Fail get depth!")
             return
-            
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
         sa = depth['sell'][0][1] #amount sell
 
-        gap = (sp-bp)*100/((sp+bp)/2)
-        print(reg[0], "bp:",bp, "sp:", sp, "gap:",gap)
+        gap = digits((sp-bp)*100/((sp+bp)/2), 6)
+        print("r0: ", reg[0], "bp:",bp,"sp:",sp,"gap:",gap)
+        print("sell offset:",round(r0h-bp, 6), "buy offset:",round(sp-r0l,6))
         
         if bp < r0h*(1+0.001) and bp > r0h*(1-0.001) and gap < 0.2:
             if self.amount_hold > 0:
@@ -260,9 +257,9 @@ class app():
         amount_decimal_limit = config.get_cfg('amount_decimal_limit')
         amount_limit = config.get_cfg('amount_limit')
         
-        price = self.digits(self.frmwk.get_last_price(pair)*(1.0-price_less),price_decimal_limit)
+        price = digits(self.frmwk.get_last_price(pair)*(1.0-price_less),price_decimal_limit)
         av = self.frmwk.get_balance(self.coin2)['available']
-        amount = self.digits(av / price * percentage, amount_decimal_limit)
+        amount = digits(av / price * percentage, amount_decimal_limit)
         if amount < amount_limit:
             print("Fail buy! amount=%f available=%f limit=%f"%(amount, av, amount_limit))
             return
@@ -283,9 +280,9 @@ class app():
         amount_decimal_limit = config.get_cfg('amount_decimal_limit')
         amount_limit = config.get_cfg('amount_limit')
         
-        price = self.digits(self.frmwk.get_last_price(pair)*(1.0+price_more),price_decimal_limit)
+        price = digits(self.frmwk.get_last_price(pair)*(1.0+price_more),price_decimal_limit)
         av = self.frmwk.get_balance(self.coin1)['available']
-        amount = self.digits(av * percentage, amount_decimal_limit)
+        amount = digits(av * percentage, amount_decimal_limit)
         if amount < amount_limit and av >= amount_limit:
             amount = amount_limit
         elif amount > av or av < amount_limit:
@@ -334,13 +331,13 @@ class app():
                 sell_min = 9999999.0
                 print("\nmarket depth:%d"%(len(buy_list)))
                 for i in buy_list:
-                    price = float(i[0])
-                    amount = float(i[1])
+                    price = i[0]
+                    amount = i[1]
                     buy_max = max(buy_max, price)
                     total_buy_funds += price * amount
                 for i in sell_list:
-                    price = float(i[0])
-                    amount = float(i[1])
+                    price = i[0]
+                    amount = i[1]
                     sell_min = min(sell_min, price)
                     total_sell_funds += price * amount
                 gap = ((sell_min-buy_max)*100)/((sell_min+buy_max)/2)

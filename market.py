@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import config
+import utils
 from framework import frmwk
 import threading
 import time
@@ -62,7 +63,7 @@ class market:
     def _update_balance(self):
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.balance = self._fwk.get_balance(pair)
-        if len(self.balance) > 0:
+        if self.balance != None and len(self.balance) > 0:
             for h in self.data_handles['balance']:
                 h(self.balance)
         if self.running == 1:
@@ -73,7 +74,7 @@ class market:
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.price = self._fwk.get_price(pair)
         #print(self.price)
-        if len(self.price) > 0:
+        if self.price != None and len(self.price) > 0:
             for h in self.data_handles['price']:
                 h(self.price)
         if self.running == 1:
@@ -84,7 +85,7 @@ class market:
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.depth = self._fwk.get_market_depth(pair)
         #print(self.depth)
-        if len(self.depth) > 0:
+        if self.depth != None and len(self.depth) > 0:
             for h in self.data_handles['depth']:
                 h(self.depth)
         if self.running == 1:
@@ -95,7 +96,7 @@ class market:
         pair = config.get_cfg("coin1")+config.get_cfg("coin2")
         self.kline = self._fwk.get_K_line(pair, limit=10, dtype="1day")
         #print(self.kline)
-        if len(self.kline) > 0:
+        if self.kline != None and len(self.kline) > 0:
             for h in self.data_handles['kline']:
                 h(self.kline)
         if self.running == 1:
