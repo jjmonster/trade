@@ -1,18 +1,20 @@
-#!-*-coding:utf-8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #@TIME    : 2018/6/25 22:26
 #@Author  : jjia
+
 import os
 import sys
 import time
 import threading
 import json
 
-import config
+from config import cfg
 from logger import log
+from framework import fwk
+from market import mkt
+from region import reg
 from utils import digits, s2f
-from framework import frmwk
-from market import market
-from region import region
 from playsound import playsound
 
 
@@ -21,7 +23,7 @@ class app():
         self.help_list = [
             (self.exit,"exit."),
             (self.load_config,"reload config."),
-            (self.print_config,"print config."),
+            (cfg.print_cfg,"print config."),
             (self.buy_order,"buy order with symbol."),
             (self.sell_order,"sell order with symbol."),
             (self.print_price,"get current price."),
@@ -36,43 +38,34 @@ class app():
             (self.stop_robot,"stop robot."),
         ]
 
-        config.load_cfg_all()
-        config.load_cfg_header()
-        self.coin1 = config.get_cfg("coin1")
-        self.coin2 = config.get_cfg("coin2")
+        self.coin1 = cfg.get_cfg("coin1")
+        self.coin2 = cfg.get_cfg("coin2")
         self.pair = self.coin1+self.coin2
         self.coin1_fee=0.0 
         self.coin2_fee=0.0
         self.order_id = []
         self.old_price = []
-        self.deficit_allowed = config.get_cfg("fee_percentage") * config.get_cfg("trans_fee_percentage")
-        self.frmwk = frmwk()
+        self.deficit_allowed = cfg.get_cfg("fee_percentage") * cfg.get_cfg("trans_fee_percentage")
         self.exchange = 0
-        self.reg = region()
-        self.mkt = market()
         self.trade_history = list()
         self.amount_hold = 0
         self.hold_max = 1000
         self.profit = 0
         
-        #self.orig_balance=self.frmwk.get_balance_all()
+        #self.orig_balance=fwk.get_balance_all()
         self.robot_running = 0
         self.parse_market_depth_running = 0
 
     def load_config(self):
-        config.load_cfg_all()
-        config.load_cfg_header()
-        self.coin1 = config.get_cfg("coin1")
-        self.coin2 = config.get_cfg("coin2")
+        cfg.load_cfg_all()
+        cfg.load_cfg_header()
+        self.coin1 = cfg.get_cfg("coin1")
+        self.coin2 = cfg.get_cfg("coin2")
         self.pair = self.coin1+self.coin2
-        self.ppercent = config.get_cfg('fee_percentage')
-
-
-    def print_config(self):
-        config.print_cfg()
+        self.ppercent = cfg.get_cfg('fee_percentage')
 
     def print_balance_all(self):
-        balance = self.frmwk.get_balance_all()
+        balance = fwk.get_balance_all()
         print("coin\t available\t frozen\t\t balance");
         for i in balance.items():
             if i[1]['available'] > 0 or i[1]['frozen'] > 0:
@@ -80,7 +73,7 @@ class app():
 
     def buy_market(self, pair, price, amount):
         try:
-            #self.mkt.buy_market(pair, price, amount) #comment this for test
+            #fwk.buy_market(pair, price, amount) #comment this for test
             self.amount_hold += amount
             self.trade_history.append([price, amount])
             self.profit += price*amount
@@ -89,7 +82,7 @@ class app():
 
     def sell_market(self, pair, price, amount):
         try:
-            #self.mkt.sell_market(pair, price, amount) #comment this for test
+            #fwk.sell_market(pair, price, amount) #comment this for test
             amount = -amount
             self.amount_hold += amount
             self.trade_history.append([price, amount])
@@ -98,15 +91,15 @@ class app():
             log.err("exception sell market!")
         
     def process(self, depth):
-        reg = self.reg.get()
-        r0h = reg[0]['h']
-        r0l = reg[0]['l']
+        r = reg.get()
+        r0h = r[0]['h']
+        r0l = r[0]['l']
 
-        #balance = self.mkt.get_balance()
+        #balance = mkt.get_balance()
         #print(balance)
 
-        #depth = self.mkt.get_depth()
-        #depth = self.frmwk.get_market_depth(self.pair) #use frmwk api to get real time data
+        #depth = mkt.get_depth()
+        #depth = fwk.get_market_depth(self.pair) #use fwk api to get real time data
         #print(depth)
         if len(depth) <= 0:
             log.err("Fail get depth!")
@@ -117,20 +110,20 @@ class app():
         sa = depth['sell'][0][1] #amount sell
 
         gap = digits((sp-bp)*100/((sp+bp)/2), 6)
-        log.info("r0:%s bp:%f sp:%f gap:%f"%(reg[0],bp,sp,gap))
+        log.info("r0:%s bp:%f sp:%f gap:%f"%(r[0],bp,sp,gap))
         log.info("sell offset:%.6f buy offset:%.6f"%(r0h-bp, sp-r0l))
         
         if bp < r0h*(1+0.001) and bp > r0h*(1-0.001) and gap < 0.2:
             if self.amount_hold > 0:
                 self.sell_market(self.pair, bp, min(ba, self.amount_hold))
-                log.info("sell_market! gap=%f buy=%f reg0h=%f"%(gap, bp, r0h))
+                log.info("sell_market! gap=%f buy=%f r0h=%f"%(gap, bp, r0h))
 
         
         if sp < r0l*(1+0.001) and sp > r0l*(1-0.001) and gap < 0.2:
             a = self.hold_max - self.amount_hold
             if a > 0:
                 self.buy_market(self.pair, sp, min(a, sa))
-                log.info("buy_market! gap=%f sell=%f reg0l=%f"%(gap, sp, r0l))
+                log.info("buy_market! gap=%f sell=%f r0l=%f"%(gap, sp, r0l))
 
         if len(self.trade_history) > 0:
             log.info("trade history: %s profit:%.6f"%(self.trade_history, self.profit))
@@ -141,7 +134,7 @@ class app():
 ##        buy_max_amount = 0.0
 ##        sell_min = 9999999.0
 ##        sell_min_amount = 0.0
-##        md = self.frmwk.get_market_depth(self.pair)
+##        md = fwk.get_market_depth(self.pair)
 ##        #print(md)
 ##        buy_list = md['buy']
 ##        sell_list = md['sell']
@@ -166,22 +159,22 @@ class app():
 ##        if gap < 0.0002:
 ##            am = min(sell_min_amount, buy_max_amount)
 ##            print("%s buy market: price:%f amount:%f"%(self.pair, sell_min, am))
-##            #self.frmwk.buy(pair=self.pair, price=sell_min, amount=am, buy_type='market')
+##            #fwk.buy(pair=self.pair, price=sell_min, amount=am, buy_type='market')
 ##            print("%s sell market: price:%f amount:%f"%(self.pair, buy_max, am))
-##            #self.frmwk.sell(pair=self.pair, price=buy_max, amount=am, sell_type='market')
+##            #fwk.sell(pair=self.pair, price=buy_max, amount=am, sell_type='market')
 ##        elif gap > 0.5:
 ##            print("%s buy limit: price:%f amount:%f"%(self.pair, buy_max+0.0001, 10))
-##            #self.frmwk.buy(pair=self.pair, price=(buy_max+0.0001), amount=1, buy_type='limit')
+##            #fwk.buy(pair=self.pair, price=(buy_max+0.0001), amount=1, buy_type='limit')
 ##            print("%s sell limit: price:%f amount:%f"%(self.pair, sell_min-0.0001, 10))
-##            #self.frmwk.sell(pair=self.pair, price=(sell_min-0.0001), amount=1, sell_type='limit')
+##            #fwk.sell(pair=self.pair, price=(sell_min-0.0001), amount=1, sell_type='limit')
 ##        print("Total funds buy:%f sell:%f"%(total_buy_funds, total_sell_funds))
 ##        print("price buy_max:%f sell_min:%f  gap:%f%%"%(buy_max, sell_min, gap))
         
-##        curr_price = self.digits(self.frmwk.get_last_price(self.pair), self.cfg['price_decimal_limit'])
+##        curr_price = self.digits(fwk.get_last_price(self.pair), self.cfg['price_decimal_limit'])
 ##        print('symbol: %s current price:%f'%(self.pair, curr_price))
 ##        self.old_price.append(curr_price)
 ##        
-##        balance = self.frmwk.get_balance(self.pair)
+##        balance = fwk.get_balance(self.pair)
 ##        coin1_ba = balance[self.cfg['coin1']].balance
 ##        coin2_ba = balance[self.coin2].balance
 ##        coin1_av = balance[self.coin1].available
@@ -237,9 +230,8 @@ class app():
         if self.robot_running == 0:
             log.dbg("robot starting...")
             self.robot_running = 1            
-            self.mkt.register_handle('price', self.reg.update_region)
-            self.mkt.register_handle('depth', self.process)
-            self.mkt.start()
+            mkt.register_handle('depth', self.process)
+            mkt.start()
             #thread = threading.Thread(target=self.robot)
             #thread.start()
         else:
@@ -249,27 +241,27 @@ class app():
         if self.robot_running == 1:
             log.dbg("robot stopping...")
             self.robot_running = 0
-            self.mkt.stop()
+            mkt.stop()
 
                 
     def buy_order(self):
         pair = self.pair
-        percentage = config.get_cfg('buy_percentage')
-        price_less = config.get_cfg('buy_price_less')
-        buy_type = config.get_cfg('buy_type')
-        price_decimal_limit = config.get_cfg('price_decimal_limit')
-        amount_decimal_limit = config.get_cfg('amount_decimal_limit')
-        amount_limit = config.get_cfg('amount_limit')
+        percentage = cfg.get_cfg('buy_percentage')
+        price_less = cfg.get_cfg('buy_price_less')
+        buy_type = cfg.get_cfg('buy_type')
+        price_decimal_limit = cfg.get_cfg('price_decimal_limit')
+        amount_decimal_limit = cfg.get_cfg('amount_decimal_limit')
+        amount_limit = cfg.get_cfg('amount_limit')
         
-        price = digits(self.frmwk.get_last_price(pair)*(1.0-price_less),price_decimal_limit)
-        av = self.frmwk.get_balance(self.coin2)['available']
+        price = digits(fwk.get_last_price(pair)*(1.0-price_less),price_decimal_limit)
+        av = fwk.get_balance(self.coin2)['available']
         amount = digits(av / price * percentage, amount_decimal_limit)
         if amount < amount_limit:
             log.err("Fail buy! amount=%f available=%f limit=%f"%(amount, av, amount_limit))
             return
         log.info("creating buy order... pair:%s price:%f amount:%f"%(pair, price, amount))
         try:
-            #self.frmwk.buy(pair, price, amount, buy_type)
+            #fwk.buy(pair, price, amount, buy_type)
             log.info("success")
         except:
             log.err("Fail create buy order!")
@@ -277,15 +269,15 @@ class app():
 
     def sell_order(self):
         pair = self.pair
-        percentage = config.get_cfg('sell_percentage')
-        price_more = config.get_cfg('sell_price_more')
-        sell_type = config.get_cfg('sell_type')
-        price_decimal_limit = config.get_cfg('price_decimal_limit')
-        amount_decimal_limit = config.get_cfg('amount_decimal_limit')
-        amount_limit = config.get_cfg('amount_limit')
+        percentage = cfg.get_cfg('sell_percentage')
+        price_more = cfg.get_cfg('sell_price_more')
+        sell_type = cfg.get_cfg('sell_type')
+        price_decimal_limit = cfg.get_cfg('price_decimal_limit')
+        amount_decimal_limit = cfg.get_cfg('amount_decimal_limit')
+        amount_limit = cfg.get_cfg('amount_limit')
         
-        price = digits(self.frmwk.get_last_price(pair)*(1.0+price_more),price_decimal_limit)
-        av = self.frmwk.get_balance(self.coin1)['available']
+        price = digits(fwk.get_last_price(pair)*(1.0+price_more),price_decimal_limit)
+        av = fwk.get_balance(self.coin1)['available']
         amount = digits(av * percentage, amount_decimal_limit)
         if amount < amount_limit and av >= amount_limit:
             amount = amount_limit
@@ -294,37 +286,37 @@ class app():
             return
         log.info("going to create sell order... pair:%s price:%f amount:%f"%(pair, price, amount))
         try:
-            #self.frmwk.sell(pair, price, amount, sell_type)
+            #fwk.sell(pair, price, amount, sell_type)
             log.info("success")
         except:
             log.err("Fail create sell order!")
 
     def print_price(self):
         try:
-            price = self.frmwk.get_last_price(self.pair)
+            price = fwk.get_last_price(self.pair)
             print("'%s' current price:%f"%(self.pair, price))
         except:
             print("Fail get '%s' price!"%(self.pair))
         
 
     def list_order(self):
-        order_list = self.frmwk.list_orders(self.pair)
+        order_list = fwk.list_orders(self.pair)
         for i in  range(len(order_list)):
             print(order_list[i])
 
     def cancel_order_all(self):
-        return self.frmwk.cancel_order_all()
+        return fwk.cancel_order_all()
 
     def cancel_order_pair(self):
-        return self.frmwk.cancel_order_pair(self.pair)
+        return fwk.cancel_order_pair(self.pair)
 
     def print_market_depth(self):
-        depth = self.frmwk.get_market_depth(self.pair)
+        depth = fwk.get_market_depth(self.pair)
         print(depth)
         
     def parse_market_depth(self):
         while self.parse_market_depth_running == 1:
-            md = self.frmwk.get_market_depth(self.pair)
+            md = fwk.get_market_depth(self.pair)
             if md:
                 #print(md)
                 buy_list = md['buy']
@@ -379,8 +371,8 @@ class app():
             self.stop_robot()
         if self.parse_market_depth_running == 1:
             self.stop_parse_market_depth()
-        if self.mkt.running == 1:
-            self.mkt.stop()
+        if mkt.running == 1:
+            mkt.stop()
         exit()
 
     def help_menu(self):

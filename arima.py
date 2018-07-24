@@ -1,5 +1,8 @@
-import config
-from framework import frmwk
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from config import cfg
+from framework import fwk
 import matplotlib.pyplot as plt
 import pandas as pd
 import statsmodels.api as sm
@@ -13,8 +16,7 @@ class arima():
         return
 
     def get_kline(self):
-        fwk = frmwk()
-        pair = config.get_cfg("coin1")+config.get_cfg("coin2")
+        pair = cfg.get_cfg("coin1")+cfg.get_cfg("coin2")
         kl = fwk.get_K_line(pair, limit=100, dtype="1hour")
         return kl
 
@@ -80,11 +82,10 @@ class arima():
         kl = self.get_kline()
         cp = self.get_close_price(kl)
         date = self.get_date(kl)
-        print(date)
         dta = pd.Series(cp, index=date)
         model=ARIMA(dta,order=(1,1,1))
         result=model.fit()
-        pred=result.predict( datetime(2018, 7, 23, 22, 0), datetime(2018, 7, 24, 22, 0),dynamic=True,typ='levels')
+        pred=result.predict( datetime(2018, 7, 24, 22, 0), datetime(2018, 7, 25, 22, 0),dynamic=True,typ='levels')
         plt.figure(figsize=(12,8))
         #plt.xticks(rotation=45)
         plt.plot(pred)
@@ -94,7 +95,7 @@ class arima():
 
 
 if __name__ == '__main__':
-    config.load_cfg_all()
     a = arima()
-    a.diff_data_graphic()
+    #a.diff_data_graphic()
+    a.arima()
     

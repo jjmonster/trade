@@ -11,10 +11,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from k_line import kline
 
-
-
-
-
 class app:
     def __init__(self):
         self.win = Tk()

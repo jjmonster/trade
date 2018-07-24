@@ -1,70 +1,72 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import configparser
 from collections import defaultdict
+from utils import s2f
 
+class config:
+    def __init__(self, cfg_file):
+        self.cf = cfg_file
+        self.cfg = defaultdict(lambda: None)
+        self.cfg_header = defaultdict(lambda: None)
+        self.load_cfg_all()
+        self.load_cfg_header()
 
-cfg_file = "base.ini"
-cfg = defaultdict(lambda: None)
-cfg_header = defaultdict(lambda: None)
+    def get_cfg_all(self):
+        return self.cfg
 
+    def get_cfg(self,key):
+        return self.cfg[key]
 
-def get_cfg_all():
-    #print(cfg)
-    return cfg
+    def set_cfg(self,key, val):
+        self.cfg[key] = val
 
-def get_cfg(key):
-    return cfg[key]
+    def get_cfg_file(self):
+        return self.cf
 
-def set_cfg(key, val):
-    cfg[key] = val
+    def get_cfg_header(self):
+        return self.cfg_header
 
-def load_cfg_all():
-    global cfg
-    try:
-        c = configparser.ConfigParser()
-        c.read(cfg_file, encoding="utf-8")
-        for s in c.sections():
-            dic = dict(c.items(s))
-            cfg = dict(cfg, **dic)
-    except:
-        print("Fail parse config file '%s'!"%cfg_file)
-        return cfg
-    for k,v in cfg.items():
+    def get_cfg_plat(self):
+        """return platform name"""
+        return self.cfg['base_url'].split('.')[1]
+
+    def get_pair(self):
+        return self.cfg['coin1']+self.cfg['coin2']
+
+    def load_cfg_all(self):
         try:
-            cfg[k] = float(v)
+            c = configparser.ConfigParser()
+            c.read(self.cf, encoding="utf-8")
+            for s in c.sections():
+                dic = dict(c.items(s))
+                self.cfg = s2f(dict(self.cfg, **dic))
         except:
-            continue
-    return cfg
+            print("Fail parse config file '%s'!"%self.cf)
+        return self.cfg
 
-def get_cfg_header():
-    return cfg_header
+    def load_cfg_header(self):
+        self.cfg_header = self.load_cfg_section("request_header")
+        return self.cfg_header
 
-def load_cfg_header():
-    global cfg_header
-    cfg_header = load_cfg_section("request_header")
-    return cfg_header
+    def load_cfg_section(self,     section):
+        try:
+            c = configparser.ConfigParser()
+            c.read(self.cf, encoding="utf-8")
+            return dict(c.items(section))
+        except:
+            print("Fail parse config file '%s'!"%self.cf)
 
-def load_cfg_section(section):
-    try:
-        c = configparser.ConfigParser()
-        c.read(cfg_file, encoding="utf-8")
-        return dict(c.items(section))
-    except:
-        print("Fail parse config file '%s'!"%cfg_file)
+    def print_cfg(self):
+        print(self.cfg)
 
-def get_cfg_plat():
-    """return platform name"""
-    #print(cfg['base_url'])
-    return cfg['base_url'].split('.')[1]
-    
-
-def print_cfg():
-    print(cfg)
-
-        
+cfg = config("base.ini")
 if __name__ == '__main__':
     """test"""
-    print(load_cfg_all())
-    print(load_cfg_section('request_header'))
-    print(get_cfg_plat())
+    print(cfg.get_cfg_all())
+    print(cfg.get_cfg("coin1"))
+    print(cfg.get_cfg_header())
+    print(cfg.get_cfg_plat())
     
     

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import hmac
 import hashlib
 import requests
@@ -203,3 +206,5 @@ class fcoin():
     def get_candle(self,resolution, symbol, **payload):
         """get candle data"""
         return self.public_request('GET', 'market/candles/{resolution}/{symbol}'.format(resolution=resolution, symbol=symbol), **payload)
+
+ft = fcoin()

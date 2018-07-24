@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from utils import digits
+from market import mkt
 
 class region:
     def __init__(self):
         self.reg = list()
         self.r_i_history = list()  #contain the region index number of past 10m
         self._n_r_i_his = 600 #max number of the region index history
+        mkt.register_handle('price', self.update_region)
 
     def get(self):
         while len(self.reg) == 0:
@@ -90,7 +93,7 @@ class region:
         print("\n")
 
 
-
+reg = region()
 if __name__ == '__main__':
     r = region()
     

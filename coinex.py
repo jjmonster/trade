@@ -9,17 +9,15 @@ import requests
 import sys
 import time
 import json
-import config
+from config import cfg
 
 class coinex():
     def __init__(self):
-        #config.load_cfg_all()
-        #config.load_cfg_header()
         self.url = ""
 
     def public_request(self, method, api_url, **payload):
         """request public url"""
-        r_url = config.get_cfg_all()['base_url'] + api_url
+        r_url = cfg.get_cfg('base_url') + api_url
         try:
             r = requests.request(method, r_url, params=payload, timeout=20)
             r.raise_for_status()
@@ -31,7 +29,7 @@ class coinex():
     def get_signed_sha512(self, sig_str):
         """signed params use sha512"""
         sig_str = base64.b64encode(sig_str)
-        signature = base64.b64encode(hmac.new(config.get_cfg_all()['secret'], sig_str, digestmod=hashlib.sha1).digest())
+        signature = base64.b64encode(hmac.new(cfg.get_cfg('secret'), sig_str, digestmod=hashlib.sha1).digest())
         return signature
 
     def get_signed_md5(self, sig_str):
@@ -44,28 +42,28 @@ class coinex():
     def signed_request(self, method, api_url, **payload):
         """request a signed url"""
         param = ''
-        payload['access_id'] = config.get_cfg_all()['id']
+        payload['access_id'] = cfg.get_cfg('id')
         payload['tonce'] = int(time.time()*1000)
         if payload:
             sort_pay = sorted(payload.items())
             for k in sort_pay:
                 param += '&' + str(k[0]) + '=' + str(k[1])
             param = param.lstrip('&')
-        sig_str = param + '&' + 'secret_key=' + config.get_cfg_all()['secret_key']
+        sig_str = param + '&' + 'secret_key=' + cfg.get_cfg('secret_key')
         signature = self.get_signed_md5(sig_str)
             
-        r_url = config.get_cfg_all()['base_url'] + api_url
+        r_url = cfg.get_cfg('base_url') + api_url
         if method == 'GET' or method == 'DELETE':
             if param:
                 r_url = r_url + '?' + param
 
         print(r_url)
         try:
-            headers = config.get_cfg_header()
+            headers = cfg.get_cfg_header()
             headers['authorization'] = signature
             #print(headers)
         except:
-            print("Fail load section from config file '%s'"%config.cfg_file)
+            print("Fail load section from config file")
             return
         
         try:
@@ -172,22 +170,18 @@ class coinex():
         """Cancel unexecuted order."""
         return self.signed_request('DELETE', '/order/pending', market=market, id=str(id))['data']['status']
 
-    
-
+cet = coinex()
 if __name__ == '__main__':
     """test this class"""
-    cex = coinex()
-    config.load_cfg_all()
-    config.load_cfg_header()
-    #print(cex.acquire_market_data('CETUSDT'))
-    #print(cex.acquire_market_data_all())
-    #print(cex.acquire_market_depth('CETUSDT'))
-    #print(cex.acquire_latest_transaction_data('CETUSDT'))
-    print(cex.acquire_K_line_data('CETUSDT'))
-    #print(cex.inquire_account_info())
-    #print(cex.acquire_unfinished_order_list('CETUSDT'))
-    #print(cex.acquire_finished_order_list('CETUSDT'))
-    #print(cex.acquire_user_deal('CETUSDT'))
-    #order_id = cex.acquire_unfinished_order_list('CETUSDT')['data'][0]['id']
+    #print(cet.acquire_market_data('CETUSDT'))
+    #print(cet.acquire_market_data_all())
+    #print(cet.acquire_market_depth('CETUSDT'))
+    #print(cet.acquire_latest_transaction_data('CETUSDT'))
+    print(cet.acquire_K_line_data('CETUSDT'))
+    #print(cet.inquire_account_info())
+    #print(cet.acquire_unfinished_order_list('CETUSDT'))
+    #print(cet.acquire_finished_order_list('CETUSDT'))
+    #print(cet.acquire_user_deal('CETUSDT'))
+    #order_id = cet.acquire_unfinished_order_list('CETUSDT')['data'][0]['id']
     #print(order_id)
-    #print(cex.cancel_order_list('CETUSDT', order_id))
+    #print(cet.cancel_order_list('CETUSDT', order_id))

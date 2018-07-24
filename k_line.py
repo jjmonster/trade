@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import matplotlib.pyplot as plt
 #import mpl_finance
 from mpl_finance import candlestick_ochl,candlestick2_ochl,index_bar
@@ -6,18 +9,13 @@ import matplotlib.dates as mdates
 from matplotlib.lines import Line2D
 import numpy as np
 
-from region import region
-from framework import frmwk
-from market import market
-import config
+from region import reg
+from market import mkt
+from config import cfg
 
 
 class kline:
     def __init__(self):
-        self.fwk = frmwk()
-        self.reg = region()
-        self.mkt = market()
-
         self.p_line = None
         self.r_lines = None
         self.k_lines = None
@@ -67,7 +65,7 @@ class kline:
         
     def update_r_line(self, region):
         print("update_r_line", region)
-        r_c = self.reg.get_reg_count()
+        r_c = reg.get_reg_count()
         if self.r_lines == None:
             self.r_lines = []
             for i in range(r_c):
@@ -87,8 +85,6 @@ class kline:
 #        plt.pause(0.001)
 
 if __name__ == '__main__':
-    config.load_cfg_all()
-    pair = config.get_cfg("coin1")+config.get_cfg("coin2")    
     kl = kline()
 #    data = [[1531180800, 0.0814, 0.081, 0.0905, 0.0723, 103771393.83420932, 8323556.042502045], [1531267200, 0.081049, 0.087, 0.08888, 0.0775, 1017550622.0969594, 83442865.2505877], [1531353600, 0.087099, 0.082961, 0.0878, 0.08112, 1159967596.6858056, 96682491.57647811], [1531440000, 0.082961, 0.0864, 0.0881, 0.0801, 1257620327.308484, 107429085.54205538], [1531526400, 0.086572, 0.107208, 0.109, 0.0854, 1062604752.9157971, 103724241.52636482], [1531612800, 0.107207, 0.1013, 0.125, 0.100481, 436595503.8351548, 47782891.340352535], [1531699200, 0.1013, 0.105216, 0.112027, 0.0981, 248884940.52353838, 26425104.860884394], [1531785600, 0.105216, 0.118753, 0.12, 0.105187, 245871414.94902983, 27615576.86779892], [1531872000, 0.118668, 0.115272, 0.121222, 0.113, 205562493.2313652, 24293006.69561948], [1531958400, 0.115271, 0.114523, 0.11669, 0.113432, 48454220.13353385, 5556155.479947055]]
 #    kl.update_k_line(data)
@@ -96,12 +92,12 @@ if __name__ == '__main__':
 #    kl.update_p_line(0.1014)
 #    kl.update_k_line(data)
 
-    kl.mkt.handle_register('kline', kl.update_k_line)
-    kl.mkt.handle_register('price', kl.update_p_line)
+    mkt.handle_register('kline', kl.update_k_line)
+    mkt.handle_register('price', kl.update_p_line)
 
-    kl.mkt.start()
+    mkt.start()
     #kl.reg.start()
     #kl.reg.stop()
     time.sleep(10)
     #plt.pause(10)
-    kl.mkt.stop()
+    mkt.stop()
