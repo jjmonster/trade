@@ -53,6 +53,7 @@ class app():
         self.trade_history = list()
         self.amount_hold = 0
         self.hold_max = 1000
+        self.profit = 0
         
         #self.orig_balance=self.frmwk.get_balance_all()
         self.robot_running = 0
@@ -82,6 +83,7 @@ class app():
             #self.mkt.buy_market(pair, price, amount) #comment this for test
             self.amount_hold += amount
             self.trade_history.append([price, amount])
+            self.profit += price*amount
         except:
             log.deg("exception buy market!")
 
@@ -91,6 +93,7 @@ class app():
             amount = -amount
             self.amount_hold += amount
             self.trade_history.append([price, amount])
+            self.profit += price*amount
         except:
             log.err("exception sell market!")
         
@@ -130,7 +133,7 @@ class app():
                 log.info("buy_market! gap=%f sell=%f reg0l=%f"%(gap, sp, r0l))
 
         if len(self.trade_history) > 0:
-            log.info("trade history: %s"%self.trade_history)
+            log.info("trade history: %s profit:%.6f"%(self.trade_history, self.profit))
         
 ##        total_buy_funds = 0.0
 ##        total_sell_funds = 0.0
