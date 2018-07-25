@@ -98,6 +98,7 @@ class coinex():
 
     def acquire_K_line_data(self, market, limit=10, dtype="1hour"):
         """Acquire k-line data for specified period, including latest 1000 datas"""
+        #param limit: 1000 max, dtype: 1min 3min 5min 15min 30min 1hour 2hour 4hour 6hour 12hour 1day 3day 1week
         #return Time open close high low volume amount market
         return self.public_request('GET', '/market/kline?market={market}&limit={limit}&type={dtype}'.format(market=market, limit=limit, dtype=dtype))['data']
 

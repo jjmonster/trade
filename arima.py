@@ -9,15 +9,27 @@ import statsmodels.api as sm
 from statsmodels.graphics.api import qqplot
 from statsmodels.tsa.arima_model import ARIMA
 import matplotlib.dates as mdates
-from datetime import datetime
+from datetime import datetime,timedelta
 
 class arima():
     def __init__(self):
+        self.day_history = 15
+        self.dtype = "1day"
         return
 
     def get_kline(self):
         pair = cfg.get_cfg("coin1")+cfg.get_cfg("coin2")
-        kl = fwk.get_K_line(pair, limit=100, dtype="1hour")
+        limit = 1000
+        if self.dtype == "1day":
+            limit = min(limit, self.day_history)
+        elif self.dtype == "1hour":
+            limit = min(limit, self.day_history*24)
+        elif self.dtype == "1min":
+            limit = min(limit, self.day_history*24*60)
+        else:
+            limit = 10
+
+        kl = fwk.get_K_line(pair, limit, self.dtype)
         return kl
 
     def get_date(self, *kl):
@@ -27,7 +39,6 @@ class arima():
             kl = kl[0]
         #date = [mdates.epoch2num(i[0]) for i in kl]
         date = [datetime.fromtimestamp(i[0]) for i in kl]
-        #print("get_date", date)
         return date
 
     def get_close_price(self, *kl):
@@ -82,14 +93,20 @@ class arima():
         kl = self.get_kline()
         cp = self.get_close_price(kl)
         date = self.get_date(kl)
+        #t = datetime.fromtimestamp(date[-1].timestamp()+24*60*60)
+        t = date[-1] + timedelta(days=int(self.day_history/5)) #days seconds ...
+        print("predict date:", date[-1],"--->", t)
+
         dta = pd.Series(cp, index=date)
-        model=ARIMA(dta,order=(1,1,1))
+        print(dta)
+        model=ARIMA(dta,order=(1,2,1)) #P D Q
         result=model.fit()
-        pred=result.predict( datetime(2018, 7, 24, 22, 0), datetime(2018, 7, 25, 22, 0),dynamic=True,typ='levels')
+        pred=result.predict( date[-1], t,dynamic=True,typ='levels')
         plt.figure(figsize=(12,8))
-        #plt.xticks(rotation=45)
-        plt.plot(pred)
-        plt.plot(dta)
+        plt.plot(dta, 'ro-')
+        plt.xticks(rotation=45)
+        plt.plot(pred, 'go-')
+
         plt.show()
 
 
