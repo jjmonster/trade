@@ -5,6 +5,7 @@ import logging,os
 
 class Logger:
     def __init__(self):
+        print("logger init instance...")
         path = "log.log"
         clevel = logging.DEBUG
         Flevel = logging.INFO
@@ -21,6 +22,7 @@ class Logger:
         fh.setFormatter(fmt)
         fh.setLevel(Flevel)
         self.logger.addHandler(fh)
+
 
     def get(self):
         return self.logger

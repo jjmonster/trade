@@ -229,7 +229,7 @@ class framework():
                 data = cet.acquire_K_line_data(pair, limit, dtype)
                 if len(data) > 0:
                     for i in data:
-                        i.pop()  ##remove the last pair string
+                        i.pop()  ##remove the last market string
                 data = s2f(data)
                 return data
             elif self.plat == 'fcoin':

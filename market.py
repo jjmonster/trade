@@ -4,6 +4,9 @@
 from collections import defaultdict
 from config import cfg
 from framework import fwk
+from logger import log
+import pandas as pd
+
 import threading
 import time
 
@@ -17,7 +20,7 @@ class market:
         self.price = 0
         self.balance = []
         self.depth = []
-        self.kline = []
+        self.kline = pd.DataFrame()
 
     def get_price(self):
         return self.price
@@ -35,11 +38,18 @@ class market:
     def start(self):
         if self.running == 0:
             self.running = 1
-            self._update_price(1)
-            #self._update_balance(1)
-            self._update_depth(1)
-            self._update_kline(3600)
+            thread = threading.Thread(target=self._update_price, args=(1,))
+            thread.start()
             
+#            thread = threading.Thread(target=self._update_balance, args=(1,))
+#            thread.start()
+            
+            thread = threading.Thread(target=self._update_depth, args=(1,))
+            thread.start()
+            
+            thread = threading.Thread(target=self._update_kline, args=(3600,))
+            thread.start()
+
         
     def stop(self):
         self.running = 0
@@ -78,19 +88,19 @@ class market:
             self._d_timer.start()
 
     def _update_kline(self, timeout):
-        self.kline = fwk.get_K_line(cfg.get_pair(), limit=10, dtype="1day")
-        #print(self.kline)
-        if self.kline != None and len(self.kline) > 0:
-            for h in self.data_handles['kline']:
-                h(self.kline)
+        self.kline = pd.DataFrame(fwk.get_K_line(cfg.get_pair(), limit=100, dtype="1hour"), columns=['t','o', 'c','h', 'l', 'v', 'a'])
+        for h in self.data_handles['kline']:
+            h(self.kline)
         if self.running == 1:
             self._k_timer = threading.Timer(timeout, self._update_kline, [timeout])
             self._k_timer.start()
 
     def register_handle(self, dtype, func):
+        log.dbg("register_handle %s %s"%(dtype, func))
         self.data_handles[dtype].append(func)
 
     def unregister_handle(self, dtype, func):
+        log.dbg("unregister_handle %s %s"%(dtype, func))
         self.data_handles[dtype].remove(func)
 
 

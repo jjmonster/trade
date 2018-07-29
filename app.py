@@ -13,7 +13,8 @@ from config import cfg
 from logger import log
 from framework import fwk
 from market import mkt
-from region import reg
+#from region import reg
+from tanalyse import bbands
 from utils import digits, s2f
 from playsound import playsound
 
@@ -91,13 +92,10 @@ class app():
             log.err("exception sell market!")
         
     def process(self, depth):
-        r = reg.get()
-        r0h = r[0]['h']
-        r0l = r[0]['l']
+        up,mid,low = bbands.get_last_band()
 
         #balance = mkt.get_balance()
         #print(balance)
-
         #depth = mkt.get_depth()
         #depth = fwk.get_market_depth(self.pair) #use fwk api to get real time data
         #print(depth)
@@ -110,20 +108,20 @@ class app():
         sa = depth['sell'][0][1] #amount sell
 
         gap = digits((sp-bp)*100/((sp+bp)/2), 6)
-        log.info("r0:%s bp:%f sp:%f gap:%f"%(r[0],bp,sp,gap))
-        log.info("sell offset:%.6f buy offset:%.6f"%(r0h-bp, sp-r0l))
+        log.info("up:%f, low:%f bp:%f sp:%f gap:%f"%(up,low,bp,sp,gap))
+        log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
         
-        if bp < r0h*(1+0.001) and bp > r0h*(1-0.001) and gap < 0.2:
+        if bp < up*(1+0.001) and bp > up*(1-0.001) and gap < 0.2:
             if self.amount_hold > 0:
                 self.sell_market(self.pair, bp, min(ba, self.amount_hold))
-                log.info("sell_market! gap=%f buy=%f r0h=%f"%(gap, bp, r0h))
+                log.info("sell_market! gap=%f buy=%f up=%f"%(gap, bp, up))
 
         
-        if sp < r0l*(1+0.001) and sp > r0l*(1-0.001) and gap < 0.2:
+        if sp < low*(1+0.001) and sp > low*(1-0.001) and gap < 0.2:
             a = self.hold_max - self.amount_hold
             if a > 0:
                 self.buy_market(self.pair, sp, min(a, sa))
-                log.info("buy_market! gap=%f sell=%f r0l=%f"%(gap, sp, r0l))
+                log.info("buy_market! gap=%f sell=%f low=%f"%(gap, sp, low))
 
         if len(self.trade_history) > 0:
             log.info("trade history: %s profit:%.6f"%(self.trade_history, self.profit))
