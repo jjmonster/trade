@@ -14,79 +14,85 @@ import time
 
 class Bbands():
     def __init__(self):
-        self.up = pd.Series()
-        self.mid = pd.Series()
-        self.low = pd.Series()
+        self.data = pd.DataFrame()
         self.kl = pd.DataFrame()
         mkt.register_handle('kline', self.handle_data)
 
 
     def get_bands(self):
-        while self.up.empty == True:
+        while self.data.empty == True:
             log.info("waiting kline data!")
             time.sleep(1)
-        return self.up, self.mid, self.low
+        return self.data['up'], self.data['mid'], self.data['low']
         
     def get_last_band(self):
-        while self.up.empty == True:
-            log.info("get_last_band waiting kline data!")
+        while self.data.empty == True:
+            log.info("get_last_band waiting data!")
             time.sleep(1)
-        up = self.up[self.up.size-1]
-        mid = self.mid[self.mid.size-1]
-        low = self.low[self.low.size-1]
-        return up,mid,low
+        last_row = self.data.iloc[-1] #or irow(-1)?
+        return last_row[0], last_row[1], last_row[2]
         
     def handle_data(self, kl):
         log.dbg("handle kline data")
         self.kl = kl
         cp = kl['c']
-        self.up, self.mid, self.low = ta.BBANDS(cp, timeperiod = 5, nbdevup = 2, nbdevdn = 2, matype = 0)
+        self.data['up'], self.data['mid'], self.data['low'] = ta.BBANDS(cp, timeperiod = 5, nbdevup = 2, nbdevdn = 2, matype = 0)
         
     def graphic(self):
-        while self.kl.empty == True:
-            log.info("waiting kline data!")
+        while self.data.empty == True:
+            log.info("waiting bbands data!")
             time.sleep(1)
         cp = self.kl['c']
         t = self.kl['t']
         fig = plt.figure(figsize=(12,8))
         ax1= fig.add_subplot(111)
         ax1.plot(cp, 'rd-', markersize=3)
-        ax1.plot(self.up, 'y-')
-        ax1.plot(self.mid, 'b-')
-        ax1.plot(self.low, 'y-')
+        ax1.plot(self.data['up'], 'y-')
+        ax1.plot(self.data['mid'], 'b-')
+        ax1.plot(self.data['low'], 'y-')
         ax1.set_title("bbands", fontproperties="SimHei")
         plt.show()
 
-#bbands = Bbands()
+bbands = Bbands()
 
 class Macd():
     def __init__(self):
-        self.macd = pd.Series()
-        self.signal = pd.Series()
-        self.hist = pd.Series()
+        self.data = pd.DataFrame()
         self.kl = pd.DataFrame()
         mkt.register_handle('kline', self.handle_data)
 
+    def get_macd(self):
+        while self.data.empty == True:
+            log.info("waiting kline data!")
+            time.sleep(1)
+        return self.data['macd'], self.data['signal'], self.data['hist']
+
+    def get_last_macd(self):
+        while self.data.empty == True:
+            log.info("get_last_band waiting data!")
+            time.sleep(1)
+        last_row = self.data.iloc[-1] #or irow(-1)?
+        return last_row[0], last_row[1], last_row[2]
 
     def handle_data(self, kl):
         log.dbg("handle kline data")
-        print(kl)
         self.kl = kl
         cp = kl['c']
-        self.macd, self.signal, self.hist = ta.MACD(cp, fastperiod = 6, slowperiod = 12, signalperiod = 9)
+        #DIF DEA 
+        self.data['macd'], self.data['signal'], self.data['hist'] = ta.MACD(cp, fastperiod = 6, slowperiod = 12, signalperiod = 9)
 
     def graphic(self):
-        while self.macd.empty == True:
+        while self.data.empty == True:
             log.info("waiting macd data!")
             time.sleep(1)
         cp = self.kl['c']
         t = self.kl['t']
         fig = plt.figure(figsize=(12,8))
         ax1= fig.add_subplot(111)
-        ax1.plot(cp, 'rd-', markersize=3)
-        ax1.plot(self.macd, 'y-')
-        ax1.plot(self.signal, 'b-')
-        ax1.plot(self.hist, 'y-')
+        #ax1.plot(cp, 'rd-', markersize=3) #don't plot price
+        ax1.plot(self.data['macd'], 'y-')
+        ax1.plot(self.data['signal'], 'b-')
+        ax1.plot(self.data['hist'], 'g-')
         ax1.set_title("macd", fontproperties="SimHei")
         plt.show()
 
@@ -94,7 +100,7 @@ macd = Macd()
 
 if __name__ == '__main__':
     mkt.start()
-    #bbands.graphic()
+    bbands.graphic()
     macd.graphic()
     mkt.stop()
     
