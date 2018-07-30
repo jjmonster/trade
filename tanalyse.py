@@ -43,14 +43,18 @@ class Bbands():
             log.info("waiting bbands data!")
             time.sleep(1)
         cp = self.kl['c']
-        t = self.kl['t']
+        t = list(map(datetime.fromtimestamp, self.kl['t']))
         fig = plt.figure(figsize=(12,8))
         ax1= fig.add_subplot(111)
-        ax1.plot(cp, 'rd-', markersize=3)
-        ax1.plot(self.data['up'], 'y-')
-        ax1.plot(self.data['mid'], 'b-')
-        ax1.plot(self.data['low'], 'y-')
+        ax1.plot(t, cp, 'rd-', markersize=3)
+        ax1.plot(t, self.data['up'], 'y-')
+        ax1.plot(t, self.data['mid'], 'b-')
+        ax1.plot(t, self.data['low'], 'y-')
         ax1.set_title("bbands", fontproperties="SimHei")
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
+        ax1.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
+        plt.xticks(rotation=45)
+        plt.legend()
         plt.show()
 
 bbands = Bbands()
@@ -79,21 +83,25 @@ class Macd():
         self.kl = kl
         cp = kl['c']
         #DIF DEA 
-        self.data['macd'], self.data['signal'], self.data['hist'] = ta.MACD(cp, fastperiod = 6, slowperiod = 12, signalperiod = 9)
+        self.data['macd'], self.data['signal'], self.data['hist'] = ta.MACD(cp, fastperiod = 12, slowperiod = 26, signalperiod = 9) #12 26 9 / 6 12 9
 
     def graphic(self):
         while self.data.empty == True:
             log.info("waiting macd data!")
             time.sleep(1)
         cp = self.kl['c']
-        t = self.kl['t']
+        t = list(map(datetime.fromtimestamp, self.kl['t']))
         fig = plt.figure(figsize=(12,8))
         ax1= fig.add_subplot(111)
         #ax1.plot(cp, 'rd-', markersize=3) #don't plot price
-        ax1.plot(self.data['macd'], 'y-')
-        ax1.plot(self.data['signal'], 'b-')
-        ax1.plot(self.data['hist'], 'g-')
+        ax1.plot(t, self.data['macd'], 'y-')
+        ax1.plot(t, self.data['signal'], 'b-')
+        ax1.plot(t, self.data['hist'], 'g-')
         ax1.set_title("macd", fontproperties="SimHei")
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
+        ax1.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
+        plt.xticks(rotation=45)
+        plt.legend()
         plt.show()
 
 macd = Macd()
