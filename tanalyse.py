@@ -69,7 +69,7 @@ class Macd():
         while self.data.empty == True:
             log.info("waiting kline data!")
             time.sleep(1)
-        return self.data['macd'], self.data['signal'], self.data['hist']
+        return self.data['dif'], self.data['dea'], self.data['macd'] 
 
     def get_last_macd(self):
         while self.data.empty == True:
@@ -78,12 +78,31 @@ class Macd():
         last_row = self.data.iloc[-1] #or irow(-1)?
         return last_row[0], last_row[1], last_row[2]
 
+    def analyse(self):
+        signal = []
+        dif, dea, macd = self.get_macd()
+        for i in range(dif.size):
+            val = dif[i] - dea[i]
+            if abs(val) < 0.001:
+                signal.append(0)
+            else:
+                if val > 0 and dea[i] > 0:
+                    signal.append(0.5) #
+                elif val < 0 and dif[i] < 0:
+                    signal.append(-0.5) #
+                else:
+                    signal.append(0)
+        return signal
+        
+
     def handle_data(self, kl):
         log.dbg("handle kline data")
         self.kl = kl
         cp = kl['c']
-        #DIF DEA 
-        self.data['macd'], self.data['signal'], self.data['hist'] = ta.MACD(cp, fastperiod = 12, slowperiod = 26, signalperiod = 9) #12 26 9 / 6 12 9
+        #SMA EMA WMA DEMA TEMA TRIMA KAMA MAMA T3 , MACDEXT
+        #macd signal hist --> DIF DEA MACD , len(cp) > slowperiod*3
+        self.data['dif'], self.data['dea'], self.data['macd'] = ta.MACD(cp, fastperiod = 12, slowperiod = 26, signalperiod = 9) #12 26 9 / 6 12 9
+        #print(self.data)
 
     def graphic(self):
         while self.data.empty == True:
@@ -93,10 +112,13 @@ class Macd():
         t = list(map(datetime.fromtimestamp, self.kl['t']))
         fig = plt.figure(figsize=(12,8))
         ax1= fig.add_subplot(111)
-        #ax1.plot(cp, 'rd-', markersize=3) #don't plot price
-        ax1.plot(t, self.data['macd'], 'y-')
-        ax1.plot(t, self.data['signal'], 'b-')
-        ax1.plot(t, self.data['hist'], 'g-')
+        ax1.plot(t, cp - cp.mean(), 'rd-', markersize=3) #price fixed around 0 for trend analyse
+        ax1.plot(t, self.data['dif'], 'y-')
+        ax1.plot(t, self.data['dea'], 'b-')
+        #ax1.plot(t, self.data['macd'], 'g-')##bar, not need
+        sig = pd.Series(self.analyse(), name='sig')
+        #ax1.plot(t, sig, 'r-')  #trading signal
+        ax1.plot(t, [0]*cp.size, 'r-') ##zero axis line
         ax1.set_title("macd", fontproperties="SimHei")
         ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
         ax1.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
@@ -108,7 +130,7 @@ macd = Macd()
 
 if __name__ == '__main__':
     mkt.start()
-    bbands.graphic()
+    #bbands.graphic()
     macd.graphic()
     mkt.stop()
     

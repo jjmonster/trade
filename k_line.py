@@ -46,20 +46,18 @@ class kline:
 #        plt.pause(0.001)
 
     def update_p_line(self, price):
-        print("update_p_line", price)
+        #print("update_p_line", price)
         if self.k_lines == None: #make sure draw kline first
             return
         if self.p_line != None:
-            print("second")
             self.p_line.set_xdata([self.x0,self.x1])
             self.p_line.set_ydata([price,price])
         else:
-            print("first")
             self.p_line = Line2D([self.x0, self.x1],[price, price], color='g')
             self.ax1.add_line(self.p_line)
         lines = self.ax1.get_lines()
-        for i in lines:
-            print("222...", i.get_data())
+        #for i in lines:
+        #    print("222...", i.get_data())
  #       plt.draw()
  #       plt.pause(0.001)
         
