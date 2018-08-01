@@ -36,7 +36,7 @@ class Bbands():
         log.dbg("handle kline data")
         self.kl = kl
         cp = kl['c']
-        self.data['up'], self.data['mid'], self.data['low'] = ta.BBANDS(cp, timeperiod = 5, nbdevup = 2, nbdevdn = 2, matype = 0)
+        self.data['up'], self.data['mid'], self.data['low'] = ta.BBANDS(cp, timeperiod = 5, nbdevup = 1, nbdevdn = 1, matype = 0)
         
     def graphic(self):
         while self.data.empty == True:
@@ -130,7 +130,7 @@ macd = Macd()
 
 if __name__ == '__main__':
     mkt.start()
-    #bbands.graphic()
-    macd.graphic()
+    bbands.graphic()
+    #macd.graphic()
     mkt.stop()
     
