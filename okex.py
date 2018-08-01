@@ -122,6 +122,8 @@ class OKCoinBase(object):
         self._url = cfg.get_cfg('base_url')
         self._api_key = cfg.get_cfg('id')
         self._secret_key = cfg.get_cfg('secret_key')
+        self._contract_type = cfg.get_cfg('contract_type')
+        self._future_or_spot = True
         self._request = HttpsRequest(self._url)
 
 
@@ -148,7 +150,7 @@ class OKCoinMarketAPI(OKCoinBase):
             return params
 
     # OKCOIN行情信息
-    def ticker(self, symbol, contract_type, future_or_spot=True):
+    def ticker(self, symbol):
         """
         :param symbol:
         :param contract_type:
@@ -156,11 +158,11 @@ class OKCoinMarketAPI(OKCoinBase):
         :return:
         """
         params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', contract_type, params, OKCoinBase.ContractType)
-        return self._request.get(OKCoinBase.RESOURCES_URL['ticker'].format('future_' if future_or_spot else ''), params)
+        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        return self._request.get(OKCoinBase.RESOURCES_URL['ticker'].format('future_' if self._future_or_spot else ''), params)
 
     # OKCoin期货市场深度信息
-    def depth(self, symbol, contract_type, size=0, merge=0, future_or_spot=True):
+    def depth(self, symbol, size=0, merge=0):
         """
         :param symbol:
         :param contract_type:
@@ -170,13 +172,13 @@ class OKCoinMarketAPI(OKCoinBase):
         :return:
         """
         params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', contract_type, params, OKCoinBase.ContractType)
+        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         params = OKCoinMarketAPI.build_request_string('size', size, params, range(1, 201))
         params = OKCoinMarketAPI.build_request_string('merge', merge, params, (0, 1))
-        return self._request.get(OKCoinBase.RESOURCES_URL['depth'].format('future_' if future_or_spot else ''), params)
+        return self._request.get(OKCoinBase.RESOURCES_URL['depth'].format('future_' if self._future_or_spot else ''), params)
 
     # OKCoin期货交易记录信息
-    def trades(self, symbol, contract_type, future_or_spot=True):
+    def trades(self, symbol):
         """
         :param symbol:
         :param contract_type:
@@ -184,8 +186,8 @@ class OKCoinMarketAPI(OKCoinBase):
         :return:
         """
         params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', contract_type, params, OKCoinBase.ContractType)
-        return self._request.get(OKCoinBase.RESOURCES_URL['trades'].format('future_' if future_or_spot else ''), params)
+        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        return self._request.get(OKCoinBase.RESOURCES_URL['trades'].format('future_' if self._future_or_spot else ''), params)
 
     # OKCoin期货指数
     def future_index(self, symbol):
@@ -213,10 +215,10 @@ class OKCoinMarketAPI(OKCoinBase):
         return self._request.get(OKCoinBase.RESOURCES_URL['estimated_price'], params)
 
     # 获取虚拟合约的K线数据
-    def future_future_kline(self, symbol, type_, contract_type, size=0, since=0):
+    def future_future_kline(self, symbol, type_, size=0, since=0):
         params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
         params = OKCoinMarketAPI.build_request_string('type', type_, params, OKCoinBase.Types)
-        params = OKCoinMarketAPI.build_request_string('contract_type', contract_type, params, OKCoinBase.ContractType)
+        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         if size:
             params += '&size=' + str(size) if params else 'size=' + str(size)
         if since:
@@ -224,15 +226,15 @@ class OKCoinMarketAPI(OKCoinBase):
         return self._request.get(OKCoinBase.RESOURCES_URL['kline'], params)
 
     # 获取当前可用合约总持仓量
-    def future_hold_amount(self, symbol, contract_type):
+    def future_hold_amount(self, symbol):
         params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', contract_type, params, OKCoinBase.ContractType)
+        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         return self._request.get(OKCoinBase.RESOURCES_URL['hold_amount'], params)
 
     # 获取合约最高买价和最低卖价
-    def future_price_limit(self, symbol, contract_type):
+    def future_price_limit(self, symbol):
         params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', contract_type, params, OKCoinBase.ContractType)
+        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         return self._request.get(OKCoinBase.RESOURCES_URL['price_limit'], params)
 
 
@@ -255,21 +257,21 @@ class OKCoinDealsAPI(OKCoinBase):
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['user_info'], params)
 
     # 期货全仓持仓信息
-    def future_position(self, symbol, contract_type):
+    def future_position(self, symbol):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type
+            'contract_type': self._contract_type
         }
         params['sign'] = HttpsRequest.build_sign(params, self._secret_key)
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['position'], params)
 
     # 期货下单
-    def future_trade(self, symbol, contract_type, price='', amount='', trade_type='', match_price='', lever_rate=''):
+    def future_trade(self, symbol, price='', amount='', trade_type='', match_price='', lever_rate=''):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'amount': amount,
             'type': trade_type,
             'match_price': match_price,
@@ -292,11 +294,11 @@ class OKCoinDealsAPI(OKCoinBase):
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['trades_history'], params)
 
     # 期货批量下单
-    def future_batch_trade(self, symbol, contract_type, orders_data, lever_rate):
+    def future_batch_trade(self, symbol,      orders_data, lever_rate):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'orders_data': orders_data,
             'lever_rate': lever_rate
         }
@@ -304,22 +306,22 @@ class OKCoinDealsAPI(OKCoinBase):
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['batch_trade'], params)
 
     # 期货取消订单
-    def future_cancel(self, symbol, contract_type, order_id):
+    def future_cancel(self, symbol, order_id):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'order_id': order_id
         }
         params['sign'] = HttpsRequest.build_sign(params, self._secret_key)
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['cancel'], params)
 
     # 期货获取订单信息
-    def future_order_info(self, symbol, contract_type, order_id, status, current_page, page_length):
+    def future_order_info(self, symbol, order_id, status, current_page, page_length):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'order_id': order_id,
             'status': status,
             'current_page': current_page,
@@ -329,11 +331,11 @@ class OKCoinDealsAPI(OKCoinBase):
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['order_info'], params)
 
     # 期货获取订单信息
-    def future_orders_info(self, symbol, contract_type, order_id):
+    def future_orders_info(self, symbol, order_id):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'order_id': order_id
         }
         params['sign'] = HttpsRequest.build_sign(params, self._secret_key)
@@ -346,22 +348,22 @@ class OKCoinDealsAPI(OKCoinBase):
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['user_info_4fix'], params)
 
     # 期货逐仓持仓信息
-    def future_position_4fix(self, symbol, contract_type, trade_type):
+    def future_position_4fix(self, symbol, trade_type):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'type': trade_type
         }
         params['sign'] = HttpsRequest.build_sign(params, self._secret_key)
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['position_4fix'], params)
 
     # 获取合约爆仓单
-    def future_explosive(self, symbol, contract_type, status, current_page, page_number, page_length):
+    def future_explosive(self, symbol, status, current_page, page_number, page_length):
         params = {
             'api_key': self._api_key,
             'symbol': symbol,
-            'contract_type': contract_type,
+            'contract_type': self._contract_type,
             'status': status,
             'current_page': current_page,
             'page_number': page_number,
