@@ -52,6 +52,8 @@ class app():
         self.amount_hold = 0
         self.hold_max = 1000
         self.profit = 0
+
+        self.signal_stat = ''
         
         #self.orig_balance=fwk.get_balance_all()
         self.robot_running = 0
@@ -91,12 +93,42 @@ class app():
         except:
             log.err("exception sell market!")
 
-    def bbands_analyse(self, depth):
-        up,low,ma5,ma10 = bbands.get_last_band()
-        
-    def process(self, depth):
-        up,low,ma5,ma10 = bbands.get_last_band()
+    def bbands_signal(self, price):
+        up,low,ma_fast,ma_slow = bbands.get_last_band()
+        log.dbg("up:%.6f low:%.6f fast:%.6f slow:%.6f"%(up,low,ma_fast, ma_slow))
+        if isclose(ma_fast, ma_slow):
+            self.signal_stat = 'free'
+        elif isclose(price, ma_fast):
+            if ma_fast > ma_slow: #upturn
+                self.signal_stat = 'open_buy'
+            elif ma_fast < ma_slow: #downturn
+                self.signal_stat = 'open_sell'
+        elif isclose(price, ma_slow):
+            if ma_fast > ma_slow: #upturn
+                self.signal_stat = 'loss_sell'
+            elif ma_fast < ma_slow: #downturn
+                self.signal_stat = 'loss_buy'
+        elif isclose(price, up):
+            if self.signal_stat == 'upper':
+                self.signal_stat = 'margin_sell'
+            else:
+                self.signal_stat = 'up'
+        elif isclose(price, low):
+            if self.signal_stat == 'lower':
+                self.signal_stat = 'margin_buy'
+            else:
+                self.signal_stat = 'low'
+        else:
+            if self.signal_stat == 'up':
+                if price > up:
+                    self.signal_stat = 'upper'
+            elif self.signal_stat == 'low':
+                if price < low:
+                    self.signal_stat = 'lower'
+            else:
+                self.signal_stat ='free'
 
+    def process(self, depth):
         #balance = mkt.get_balance()
         #print(balance)
         #depth = mkt.get_depth()
@@ -111,28 +143,42 @@ class app():
         sa = depth['sell'][0][1] #amount sell
 
         gap = gaps(bp, sp)
-        if gap > 0.2:
-            log.info("gap=%f low volume, don't operate!")
-            return
+#        if gap > 0.2:
+#            log.info("gap=%f low volume, don't operate!"%(gap))
+#            return
 
-        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))
-        log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
-        
-        if isclose(up, bp):
-            if self.amount_hold > 0:
-                self.sell_market(self.pair, bp, min(ba, self.amount_hold))
-                log.info("sell_market! gap=%f buy=%f up=%f"%(gap, bp, up))
-
-        
-        if isclose(sp, low):
+        self.bbands_signal((bp+sp)/2)
+        log.dbg(self.signal_stat)
+        if self.signal_stat == 'open_buy':
             a = self.hold_max - self.amount_hold
             if a > 0:
-                self.buy_market(self.pair, sp, min(a, sa))
-                log.info("buy_market! gap=%f sell=%f low=%f"%(gap, sp, low))
+                self.buy_market(cfg.get_pair(), sp, min(a, sa))
+        elif self.signal_stat == 'margin_sell' or self.signal_stat == 'loss_sell':
+            if self.amount_hold > 0:
+                self.sell_market(cfg.get_pair(), bp, min(ba, self.amount_hold))
 
         if len(self.trade_history) > 0:
             log.info("trade history: %s profit:%.6f"%(self.trade_history, self.profit))
-        
+
+
+##        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))
+##        log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
+##        if isclose(up, bp):
+##            if self.amount_hold > 0:
+##                self.sell_market(self.pair, bp, min(ba, self.amount_hold))
+##                log.info("sell_market! gap=%f buy=%f up=%f"%(gap, bp, up))
+##
+##        
+##        if isclose(sp, low):
+##            a = self.hold_max - self.amount_hold
+##            if a > 0:
+##                self.buy_market(self.pair, sp, min(a, sa))
+##                log.info("buy_market! gap=%f sell=%f low=%f"%(gap, sp, low))
+##
+##        if len(self.trade_history) > 0:
+##            log.info("trade history: %s profit:%.6f"%(self.trade_history, self.profit))
+##        
+
 ##        total_buy_funds = 0.0
 ##        total_sell_funds = 0.0
 ##        buy_max = 0.0
