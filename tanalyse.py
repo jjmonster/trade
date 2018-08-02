@@ -36,6 +36,7 @@ class Bbands():
         log.dbg("handle kline data")
         self.kl = kl
         cp = kl['c']
+        #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
         self.data['up'], self.data['mid'], self.data['low'] = ta.BBANDS(cp, timeperiod = 5, nbdevup = 1, nbdevdn = 1, matype = 0)
         
     def graphic(self):

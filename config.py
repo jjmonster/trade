@@ -33,7 +33,11 @@ class config:
         return self.cfg['base_url'].split('.')[1]
 
     def get_pair(self):
-        return self.cfg['coin1']+self.cfg['coin2']
+        plt = self.get_cfg_plat()
+        if plt == 'okex':
+            return self.cfg['coin1']+'_'+self.cfg['coin2']
+        else:
+            return self.cfg['coin1']+self.cfg['coin2']
 
     def load_cfg_all(self):
         try:

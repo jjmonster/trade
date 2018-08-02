@@ -94,7 +94,7 @@ class OKCoinBase(object):
         'cancel_withdraw': '/api/v1/cancel_withdraw.do',
         'withdraw_info': '/api/v1/withdraw_info.do'
     }
-    Symbols = ('btc_usd', 'ltc_usd')
+    Symbols = ('btc_usd', 'ltc_usd', 'eth_usd', 'etc_usd', 'bch_usd', 'btg_usd', 'xrp_usd', 'eos_usd')
     ContractType = ('this_week', 'next_week', 'quarter')
     Types = ('1min',
              '3min',
@@ -122,13 +122,12 @@ class OKCoinBase(object):
         self._url = cfg.get_cfg('base_url')
         self._api_key = cfg.get_cfg('id')
         self._secret_key = cfg.get_cfg('secret_key')
-        self._contract_type = cfg.get_cfg('contract_type')
+        self._contract_type = cfg.get_cfg('future_contract_type')
         self._future_or_spot = True
         self._request = HttpsRequest(self._url)
 
 
-class OKCoinMarketAPI(OKCoinBase):
-
+class OKCoinAPI(OKCoinBase):
     def __init__(self):
         """
         Constructor for class of OKCoinMarketAPI.
@@ -137,9 +136,10 @@ class OKCoinMarketAPI(OKCoinBase):
         :param secret_key: String of SECRET KEY
         :return: None
         """
-        super(OKCoinMarketAPI, self).__init__()
+        super(OKCoinAPI, self).__init__()
 
     @classmethod
+    #######################market api#################
     def build_request_string(cls, name, value, params='', choice=()):
         if value:
             if value in choice:
@@ -157,9 +157,9 @@ class OKCoinMarketAPI(OKCoinBase):
         :param future_or_spot:
         :return:
         """
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
-        return self._request.get(OKCoinBase.RESOURCES_URL['ticker'].format('future_' if self._future_or_spot else ''), params)
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        return self._request.get(OKCoinBase.RESOURCES_URL['ticker'].format('future_' if self._future_or_spot else ''), params)['ticker']
 
     # OKCoin期货市场深度信息
     def depth(self, symbol, size=0, merge=0):
@@ -171,10 +171,10 @@ class OKCoinMarketAPI(OKCoinBase):
         :param future_or_spot:
         :return:
         """
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
-        params = OKCoinMarketAPI.build_request_string('size', size, params, range(1, 201))
-        params = OKCoinMarketAPI.build_request_string('merge', merge, params, (0, 1))
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        params = self.build_request_string('size', size, params, range(1, 201))
+        params = self.build_request_string('merge', merge, params, (0, 1))
         return self._request.get(OKCoinBase.RESOURCES_URL['depth'].format('future_' if self._future_or_spot else ''), params)
 
     # OKCoin期货交易记录信息
@@ -185,8 +185,8 @@ class OKCoinMarketAPI(OKCoinBase):
         :param future_or_spot:
         :return:
         """
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         return self._request.get(OKCoinBase.RESOURCES_URL['trades'].format('future_' if self._future_or_spot else ''), params)
 
     # OKCoin期货指数
@@ -195,7 +195,7 @@ class OKCoinMarketAPI(OKCoinBase):
         :param symbol:
         :return:
         """
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
         return self._request.get(OKCoinBase.RESOURCES_URL['index'], params)
 
     # 获取美元人民币汇率
@@ -211,14 +211,15 @@ class OKCoinMarketAPI(OKCoinBase):
         :param symbol:
         :return:
         """
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
         return self._request.get(OKCoinBase.RESOURCES_URL['estimated_price'], params)
 
     # 获取虚拟合约的K线数据
-    def future_future_kline(self, symbol, type_, size=0, since=0):
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('type', type_, params, OKCoinBase.Types)
-        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+    def future_kline(self, symbol, type_, size=0, since=0):
+        # t o h l c v a
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('type', type_, params, OKCoinBase.Types)
+        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         if size:
             params += '&size=' + str(size) if params else 'size=' + str(size)
         if since:
@@ -227,29 +228,18 @@ class OKCoinMarketAPI(OKCoinBase):
 
     # 获取当前可用合约总持仓量
     def future_hold_amount(self, symbol):
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         return self._request.get(OKCoinBase.RESOURCES_URL['hold_amount'], params)
 
     # 获取合约最高买价和最低卖价
     def future_price_limit(self, symbol):
-        params = OKCoinMarketAPI.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
-        params = OKCoinMarketAPI.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
+        params = self.build_request_string('symbol', symbol, '', OKCoinBase.Symbols)
+        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.ContractType)
         return self._request.get(OKCoinBase.RESOURCES_URL['price_limit'], params)
 
 
-class OKCoinDealsAPI(OKCoinBase):
-
-    def __init__(self):
-        """
-        Constructor for class of OKCoinFuture.
-        :param url: Base URL for REST API of Future
-        :param api_key: String of API KEY
-        :param secret_key: String of SECRET KEY
-        :return: None
-        """
-        super(OKCoinDealsAPI, self).__init__()
-
+    #######################deal api################
     # 期货全仓账户信息
     def future_user_info(self):
         params = {'api_key': self._api_key}
@@ -407,7 +397,8 @@ class OKCoinDealsAPI(OKCoinBase):
         return HttpsRequest.post(OKCoinBase.RESOURCES_URL['withdraw_info'], params)
 
 
+okb = OKCoinAPI()
+
 if __name__ == '__main__':
-    mkt = OKCoinMarketAPI()
-    print(mkt.ticker('btc_usd','this_week'))
+    print(okb.ticker('btc_usd'))
 

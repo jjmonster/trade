@@ -6,6 +6,9 @@ from config import cfg
 from utils import digits, s2f
 from coinex import cet
 from fcoin import ft
+from okex import okb
+import pandas as pd
+
 from collections import defaultdict
 
 class framework():
@@ -62,7 +65,8 @@ class framework():
                 #data = ft.get_market_ticker(pair)
                 pass
             elif self._plat == 'okex':
-                pass
+                #'high' 'vol' 'day_high' 'last' 'low' 'contract_id' 'buy' 'sell' 'coin_vol' 'day_low' 'unit_amount'
+                price = okb.ticker(pair)
             else:
                 pass                
         except:
@@ -94,12 +98,34 @@ class framework():
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
-                pass
+                data = okb.depth(pair)
+                depth['buy'] = data.pop('bids')
+                depth['sell'] = data.pop('asks')
             else:
                 pass
         except:
             log.err("Exception on get_market_depth!")
         return depth
+
+    def get_kline(self, pair, limit=10, dtype="1hour"):
+        try:
+            if self._plat == 'coinex':
+                data = cet.acquire_K_line_data(pair, limit, dtype)
+                if len(data) > 0:
+                    for i in data:
+                        i.pop()  ##remove the last market string
+                data = s2f(data)
+                return pd.DataFrame(data, columns=['t','o', 'c','h', 'l', 'v', 'a'])
+            elif self._plat == 'fcoin':
+                pass
+            elif self._plat == 'okex':
+                data = okb.future_kline(pair, limit, dtype)
+                return pd.DataFrame(data, columns = ['t', 'o', 'h', 'l', 'c', 'v', 'a'])
+            else:
+                pass
+
+        except:
+            log.err("Exception on get_K_line!")
 
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)
@@ -309,24 +335,6 @@ class framework():
         except:
             log.err("Exception on cancel_order_all!")
 
-    def get_K_line(self, pair, limit=10, dtype="1hour"):
-        try:
-            if self._plat == 'coinex':
-                data = cet.acquire_K_line_data(pair, limit, dtype)
-                if len(data) > 0:
-                    for i in data:
-                        i.pop()  ##remove the last market string
-                data = s2f(data)
-                return data
-            elif self._plat == 'fcoin':
-                pass
-            elif self._plat == 'okex':
-                pass
-            else:
-                pass
-
-        except:
-            log.err("Exception on get_K_line!")
 
 
 fwk = framework()
