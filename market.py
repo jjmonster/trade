@@ -78,7 +78,7 @@ class market:
             self._p_timer.start()
 
     def _update_depth(self, timeout):
-        self.depth = fwk.get_market_depth(cfg.get_pair())
+        self.depth = fwk.get_depth(cfg.get_pair())
         #print(self.depth)
         if self.depth != None and len(self.depth) > 0:
             for h in self.data_handles['depth']:

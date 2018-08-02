@@ -15,7 +15,7 @@ from framework import fwk
 from market import mkt
 #from region import reg
 from tanalyse import bbands
-from utils import digits, s2f
+from utils import *
 from playsound import playsound
 
 
@@ -90,14 +90,17 @@ class app():
             self.profit += price*amount
         except:
             log.err("exception sell market!")
+
+    def bbands_analyse(self, depth):
+        up,low,ma5,ma10 = bbands.get_last_band()
         
     def process(self, depth):
-        up,mid,low = bbands.get_last_band()
+        up,low,ma5,ma10 = bbands.get_last_band()
 
         #balance = mkt.get_balance()
         #print(balance)
         #depth = mkt.get_depth()
-        #depth = fwk.get_market_depth(self.pair) #use fwk api to get real time data
+        #depth = fwk.get_depth(self.pair) #use fwk api to get real time data
         #print(depth)
         if len(depth) <= 0:
             log.err("Fail get depth!")
@@ -107,17 +110,21 @@ class app():
         sp = depth['sell'][0][0] #price sell
         sa = depth['sell'][0][1] #amount sell
 
-        gap = digits((sp-bp)*100/((sp+bp)/2), 6)
-        log.info("up:%f, low:%f bp:%f sp:%f gap:%f"%(up,low,bp,sp,gap))
+        gap = gaps(bp, sp)
+        if gap > 0.2:
+            log.info("gap=%f low volume, don't operate!")
+            return
+
+        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))
         log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
         
-        if bp < up*(1+0.001) and bp > up*(1-0.001) and gap < 0.2:
+        if isclose(up, bp):
             if self.amount_hold > 0:
                 self.sell_market(self.pair, bp, min(ba, self.amount_hold))
                 log.info("sell_market! gap=%f buy=%f up=%f"%(gap, bp, up))
 
         
-        if sp < low*(1+0.001) and sp > low*(1-0.001) and gap < 0.2:
+        if isclose(sp, low):
             a = self.hold_max - self.amount_hold
             if a > 0:
                 self.buy_market(self.pair, sp, min(a, sa))
@@ -132,7 +139,7 @@ class app():
 ##        buy_max_amount = 0.0
 ##        sell_min = 9999999.0
 ##        sell_min_amount = 0.0
-##        md = fwk.get_market_depth(self.pair)
+##        md = fwk.get_depth(self.pair)
 ##        #print(md)
 ##        buy_list = md['buy']
 ##        sell_list = md['sell']
@@ -309,12 +316,12 @@ class app():
         return fwk.cancel_order_pair(self.pair)
 
     def print_market_depth(self):
-        depth = fwk.get_market_depth(self.pair)
+        depth = fwk.get_depth(self.pair)
         print(depth)
         
     def parse_market_depth(self):
         while self.parse_market_depth_running == 1:
-            md = fwk.get_market_depth(self.pair)
+            md = fwk.get_depth(self.pair)
             if md:
                 #print(md)
                 buy_list = md['buy']

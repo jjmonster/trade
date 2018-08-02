@@ -88,7 +88,7 @@ class framework():
             log.err("Exception on get_price_all!")
         return data
 
-    def get_market_depth(self, pair):
+    def get_depth(self, pair):
         depth = defaultdict(lambda: None)
         try:
             if self._plat == 'coinex':
@@ -104,7 +104,7 @@ class framework():
             else:
                 pass
         except:
-            log.err("Exception on get_market_depth!")
+            log.err("Exception on get_depth!")
         return depth
 
     def get_kline(self, pair, limit=10, dtype="1hour"):
@@ -338,3 +338,8 @@ class framework():
 
 
 fwk = framework()
+
+if __name__ == '__main__':
+    print(fwk.get_price(cfg.get_pair()))
+    print(fwk.get_kline(cfg.get_pair(), 10, '1hour'))
+    print(fwk.get_depth(cfg.get_pair()))
