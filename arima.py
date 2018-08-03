@@ -31,7 +31,7 @@ class arima():
         else:
             limit = 10
 
-        kl = fwk.get_kline(pair, limit, self.dtype)
+        kl = fwk.get_kline(pair, self.dtype, limit)
         return kl
 
     def get_date(self, *kl):

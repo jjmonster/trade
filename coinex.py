@@ -96,7 +96,7 @@ class coinex():
         """Acquire latest transaction data，return up to 1000"""
         return self.public_request('GET', '/market/deals?market={market}&last_id={last_id}'.format(market=market, last_id=last_id))['data']
 
-    def acquire_K_line_data(self, market, limit=10, dtype="1hour"):
+    def acquire_K_line_data(self, market, dtype="1hour", limit=10):
         """Acquire k-line data for specified period, including latest 1000 datas"""
         #param limit: 1000 max, dtype: 1min 3min 5min 15min 30min 1hour 2hour 4hour 6hour 12hour 1day 3day 1week
         #return Time open close high low volume amount market

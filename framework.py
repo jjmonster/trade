@@ -107,10 +107,10 @@ class framework():
             log.err("Exception on get_depth!")
         return depth
 
-    def get_kline(self, pair, limit=10, dtype="1hour"):
+    def get_kline(self, pair, dtype, limit):
         try:
             if self._plat == 'coinex':
-                data = cet.acquire_K_line_data(pair, limit, dtype)
+                data = cet.acquire_K_line_data(pair, dtype, limit)
                 if len(data) > 0:
                     for i in data:
                         i.pop()  ##remove the last market string
@@ -341,5 +341,5 @@ fwk = framework()
 
 if __name__ == '__main__':
     print(fwk.get_price(cfg.get_pair()))
-    print(fwk.get_kline(cfg.get_pair(), 10, '1hour'))
+    print(fwk.get_kline(cfg.get_pair(), '1hour', 10))
     print(fwk.get_depth(cfg.get_pair()))

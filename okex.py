@@ -400,5 +400,7 @@ class OKCoinAPI(OKCoinBase):
 okb = OKCoinAPI()
 
 if __name__ == '__main__':
-    print(okb.ticker('btc_usd'))
+    print(okb.ticker(cfg.get_pair()))
+    print(okb.depth(cfg.get_pair(), 5, 0))
+    print(okb.future_kline(cfg.get_pair(), '1hour', 10))
 

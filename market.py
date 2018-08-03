@@ -88,7 +88,7 @@ class market:
             self._d_timer.start()
 
     def _update_kline(self, timeout):
-        self.kline = fwk.get_kline(cfg.get_pair(), limit=100, dtype="1hour")
+        self.kline = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=100)
         for h in self.data_handles['kline']:
             h(self.kline)
         if self.running == 1:
