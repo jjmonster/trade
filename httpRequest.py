@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import hmac
+import hashlib
+import base64
+import requests
+
+class httpRequest(object):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def sha512sign(self, sig_str):
+        sig_str = base64.b64encode(sig_str)
+        signature = base64.b64encode(hmac.new(cfg.get_cfg('secret'), sig_str, digestmod=hashlib.sha1).digest())
+        return signature
+
+    def md5sign(self, sig_str):
+        hl = hashlib.md5()
+        #print(sig_str)
+        hl.update(sig_str.encode(encoding='utf-8'))
+        signature = str.upper(hl.hexdigest())
+        return signature
+
+    def dict2str(self, dic):
+        s = ''
+        if len(dic) > 0:
+            for key in sorted(dic.keys()):
+                s += key + '=' + str(dic[key]) + '&'
+            s.lstrip('&')
+        return s
+    
+    def sign(self, params, secret_key):
+        sig_str = dict2str(params)
+        sig_str += '&'+'secret_key='+secret_key
+        return md5sign(sig_str)
+
+    def request(self, method, r_url, params, *headers):
+        try:
+            if method == 'POST':
+                r = requests.request(method, r_url, headers = headers, json=params,timeout=10)
+            else: #GET DELETE
+                
+                r = requests.request(method, r_url, params=params, timeout=10)
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(err)
+        if r.status_code == 200:
+            return r.json()
+
+            
+    def get(self, r_url, params):
+        """request public url"""
+        return self.request('GET', r_url, params)
+    
+    def post(self, r_url, headers, params):
+        """request a signed url"""
+        return self.request('POST', r_url, params, headers)
+
+    def delete(self, r_url, params):
+        return self.request('DELETE', r_url, params)

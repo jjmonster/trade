@@ -1,5 +1,6 @@
 *wav*
 __*__
 *.log
-
+*.bak
 *.cfg
+test.py

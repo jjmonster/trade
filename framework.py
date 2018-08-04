@@ -119,13 +119,13 @@ class framework():
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
-                data = okb.future_kline(pair, limit, dtype)
+                data = okb.kline(pair, dtype, limit)
                 return pd.DataFrame(data, columns = ['t', 'o', 'h', 'l', 'c', 'v', 'a'])
             else:
                 pass
 
         except:
-            log.err("Exception on get_K_line!")
+            log.err("Exception on get_kline!")
 
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)

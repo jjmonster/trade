@@ -28,14 +28,20 @@ class config:
     def get_cfg_header(self):
         return self.cfg_header
 
+    def get_url(self):
+        return self.cfg['base_url']
+
     def get_cfg_plat(self):
         """return platform name"""
         return self.cfg['base_url'].split('.')[1]
 
     def get_pair(self):
         plt = self.get_cfg_plat()
-        if plt == 'okex':
-            return self.cfg['coin1']+'_'+self.cfg['coin2']
+        if plt == 'okex' or plt == 'okcoin':
+            if self.get_cfg('future_or_spot') == 'future':
+                return self.cfg['coin1']+'_usd'
+            else:
+                return self.cfg['coin1']+'_'+self.cfg['coin2']
         else:
             return self.cfg['coin1']+self.cfg['coin2']
 
