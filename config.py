@@ -45,6 +45,12 @@ class config:
         else:
             return self.cfg['coin1']+self.cfg['coin2']
 
+    def get_id(self):
+        return self.cfg['id']
+        
+    def get_secretKey(self):
+        return self.cfg['secret_key']
+
     def load_cfg_all(self):
         try:
             c = configparser.ConfigParser()

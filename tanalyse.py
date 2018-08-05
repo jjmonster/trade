@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime,timedelta
 import pandas as pd
+import numpy as np
 import talib as ta
 import time
 
@@ -30,7 +31,7 @@ class Bbands():
             log.info("get_last_band waiting data!")
             time.sleep(1)
         last_row = self.data.iloc[-1] #or irow(-1)?
-        return last_row['up'], last_row['low'], last_row['ma5'], last_row['ma10']
+        return last_row['up'], last_row['low'], last_row['ma10'], last_row['ma20']
         
     def handle_data(self, kl):
         log.dbg("handle kline data")
@@ -39,6 +40,14 @@ class Bbands():
         #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
         self.data['up'], self.data['ma5'], self.data['low'] = ta.BBANDS(cp, timeperiod = 5, nbdevup = 1, nbdevdn = 1, matype = 0)
         self.data['ma10'] = ta.MA(cp, 10)
+        self.data['ma20'] = ta.MA(cp, 20)
+
+    def coordinate_repeat(self, x, y): ##polygonal line
+        arr1 = list(np.array(x).repeat(2))
+        arr2 = list(np.array(y).repeat(2))
+        arr1.pop(0)
+        arr2.pop(-1)
+        return pd.Series(arr1), pd.Series(arr2)
         
     def graphic(self):
         while self.data.empty == True:
@@ -49,10 +58,15 @@ class Bbands():
         fig = plt.figure(figsize=(12,8))
         ax1= fig.add_subplot(111)
         ax1.plot(t, cp, 'rd-', markersize=3)
-        ax1.plot(t, self.data['up'], 'y-')
+        x,y = self.coordinate_repeat(t, self.data['up'])
+        ax1.plot(x, y, 'y-')
+        x,y = self.coordinate_repeat(t, self.data['low'])
+        ax1.plot(x, y, 'y-')
+
         ax1.plot(t, self.data['ma5'], 'b-')
         ax1.plot(t, self.data['ma10'], 'g-')
-        ax1.plot(t, self.data['low'], 'y-')
+        ax1.plot(t, self.data['ma20'], 'k-')
+
         ax1.set_title("bbands", fontproperties="SimHei")
         ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
         ax1.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
@@ -132,8 +146,8 @@ class Macd():
 macd = Macd()
 
 if __name__ == '__main__':
-    mkt.start()
     bbands.graphic()
     #macd.graphic()
     mkt.stop()
+
     

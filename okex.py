@@ -119,62 +119,42 @@ class OKCoinAPI(OKCoinBase):
         return data
 
     def future_index(self, symbol):
-        """
-        :param symbol:
-        :return:
-        """
-        params = self.build_request_string('symbol', symbol, '', OKCoinBase.future_symbols)
-        return self._request.get(OKCoinBase.RESOURCES_URL['index'], params)
+        params = {'symbol':symbol}
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['index']
+        return self._request.get(url, params)['future_index']
 
-    # 获取美元人民币汇率
-    def exchange_rate(self):
-        """
-        :return:
-        """
-        return self._request.get(OKCoinBase.RESOURCES_URL['exchange_rate'], '')
+    def future_exchange_rate(self):
+        params = {}
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['exchange_rate']
+        return self._request.get(url, params)['rate']
 
-    # 获取预估交割价
+
     def future_estimated_price(self, symbol):
-        """
-        :param symbol:
-        :return:
-        """
-        params = self.build_request_string('symbol', symbol, '', OKCoinBase.future_symbols)
-        return self._request.get(OKCoinBase.RESOURCES_URL['estimated_price'], params)
+        params = {'symbol':symbol}
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['estimated_price']
+        return self._request.get(url, params)['forecast_price']
 
-    # 获取虚拟合约的K线数据
-    def future_kline(self, symbol, type_, size=0, since=0):
-        params = self.build_request_string('symbol', symbol, '', OKCoinBase.future_symbols)
-        params = self.build_request_string('type', type_, params, OKCoinBase.kline_types)
-        if self._future_or_spot == True:
-            params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.future_contract_type)
-        if size:
-            params += '&size=' + str(size) if params else 'size=' + str(size)
-        if since:
-            params += '&since=' + str(since) if params else 'since=' + str(since)
-        return self._request.get(OKCoinBase.RESOURCES_URL['kline'], params)
-
-    # 获取当前可用合约总持仓量
     def future_hold_amount(self, symbol):
-        params = self.build_request_string('symbol', symbol, '', OKCoinBase.future_symbols)
-        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.future_contract_type)
-        return self._request.get(OKCoinBase.RESOURCES_URL['hold_amount'], params)
+        params = {'symbol':symbol, 'contract_type':self._contract_type}
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['hold_amount']
+        return self._request.get(url, params)[0]['amount']
 
-    # 获取合约最高买价和最低卖价
     def future_price_limit(self, symbol):
-        params = self.build_request_string('symbol', symbol, '', OKCoinBase.future_symbols)
-        params = self.build_request_string('contract_type', self._contract_type, params, OKCoinBase.future_contract_type)
-        return self._request.get(OKCoinBase.RESOURCES_URL['price_limit'], params)
+        params = {'symbol':symbol, 'contract_type':self._contract_type}
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['price_limit']
+        return self._request.get(url, params)
 
 
     #######################deal api################
-    # 期货全仓账户信息
-    def future_user_info(self):
-        params = {'api_key': self._api_key}
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['user_info'], params)
+    def user_info(self):
+        params = {'api_key': cfg.get_id()}
+        params['sign'] = self._request.sign(params, cfg.get_secretKey())
+        headers = cfg.get_cfg_header()
+        print(params, headers)
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['user_info']
+        return self._request.post(url, params, headers)
 
-    # 期货全仓持仓信息
+    
     def future_position(self, symbol):
         params = {
             'api_key': self._api_key,
@@ -328,8 +308,9 @@ class OKCoinAPI(OKCoinBase):
 okb = OKCoinAPI()
 
 if __name__ == '__main__':
-#    print(okb.ticker(cfg.get_pair()))
+    print(okb.ticker(cfg.get_pair()))
 #    print(okb.depth(cfg.get_pair(), 5, 0))
-    print(okb.kline(cfg.get_pair(), '1hour', 10))
+#    print(okb.kline(cfg.get_pair(), '1hour', 10))
 #    print(okb.trades(cfg.get_pair()))
+#    print(okb.user_info())
 

@@ -16,11 +16,11 @@ class framework():
         self._plat = cfg.get_cfg_plat()
 
     def get_all_pair(self):
-        data = None
+        data = []
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_list()
-                return [item.lower() for item in data]
+                data = [item.lower() for item in data]
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
@@ -33,10 +33,10 @@ class framework():
         return data
 
     def get_last_price(self,pair):
-        data = None
+        data = 0
         try:
             if self._plat == 'coinex':
-                return s2f(cet.acquire_market_data(pair)['last'])
+                data = s2f(cet.acquire_market_data(pair)['last'])
             elif self._plat == 'fcoin':
                 #data = ft.get_market_ticker(pair)
                 pass
@@ -74,7 +74,7 @@ class framework():
         return price
 
     def get_price_all(self):
-        data = None
+        data = []
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_data_all()
@@ -108,6 +108,7 @@ class framework():
         return depth
 
     def get_kline(self, pair, dtype, limit):
+        kl = pd.DataFrame()
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_K_line_data(pair, dtype, limit)
@@ -115,17 +116,18 @@ class framework():
                     for i in data:
                         i.pop()  ##remove the last market string
                 data = s2f(data)
-                return pd.DataFrame(data, columns=['t','o', 'c','h', 'l', 'v', 'a'])
+                kl = pd.DataFrame(data, columns=['t','o', 'c','h', 'l', 'v', 'a'])
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
                 data = okb.kline(pair, dtype, limit)
-                return pd.DataFrame(data, columns = ['t', 'o', 'h', 'l', 'c', 'v', 'a'])
+                kl = pd.DataFrame(data, columns = ['t', 'o', 'h', 'l', 'c', 'v', 'a'])
             else:
                 pass
 
         except:
             log.err("Exception on get_kline!")
+        return kl
 
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)
@@ -257,6 +259,9 @@ class framework():
 
         except:
             log.err("Exception on sell!")
+
+    def trade(self, pair, trade_type, price, amount):
+        pass
 
     def list_orders(self, pair):
         data = []
