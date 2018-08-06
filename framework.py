@@ -261,7 +261,7 @@ class framework():
             log.err("Exception on sell!")
 
     def trade(self, pair, trade_type, price, amount):
-        pass
+        return True
 
     def list_orders(self, pair):
         data = []

@@ -3,4 +3,5 @@ __*__
 *.log
 *.bak
 *.cfg
+base.ini
 test.py

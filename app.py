@@ -53,6 +53,7 @@ class app():
         self.amount_hold = {'buy':0, 'sell':0, 'max':1000}
         self.profit = {'buy':0, 'sell':0}
 
+        self.prev_sig = ''
         self.bSignal = ''
         
         #self.orig_balance=fwk.get_balance_all()
@@ -94,7 +95,6 @@ class app():
 
     def bbands_signal(self, price):
         up,low,ma_fast,ma_slow = bbands.get_last_band()
-        log.dbg("price:%.6f, bandup:%.6f bandlow:%.6f mafast:%.6f maslow:%.6f"%(price,up,low,ma_fast, ma_slow))
         if isclose(ma_fast, ma_slow):
             self.bSignal = 'ma_close' #Shock market,don't operate
         elif isclose(price, ma_fast):
@@ -127,6 +127,33 @@ class app():
             else:
                 self.bSignal ='free'
 
+        #test self.bSignal = 'open_sell'
+        if self.bSignal != self.prev_sig:  #self.bSignal in self.trade_type.keys():
+            log.info("bband signal:%s price:%.6f, bandup:%.6f bandlow:%.6f mafast:%.6f maslow:%.6f"%(self.bSignal,price,up,low,ma_fast, ma_slow))
+
+        self.prev_sig = self.bSignal
+
+    def _trade(self, ttype, price, amount):
+        if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
+            if ttype == 1:
+               self.profit['buy'] -= price*amount 
+               self.amount_hold['buy'] += amount
+            elif ttype == 2:
+                self.profit['sell'] -= price*amount
+                self.amount_hold['sell'] += amount
+            elif ttype == 3:
+                self.profit['buy'] += price*amount
+                self.amount_hold['buy'] -= amount
+            elif ttype == 4:
+                self.profit['sell'] += price*amount
+                self.amount_hold['sell'] -= amount
+
+
+            ##record the trade history
+            self.trade_history.append([time.time(), self.bSignal, price, amount])
+            log.info("trade history: %s"%(self.trade_history))
+
+        
     def trade(self, bp, ba, sp, sa):
         if not self.bSignal in self.trade_type.keys():
             return
@@ -137,39 +164,34 @@ class app():
             if a > 0:
                 price = sp
                 amount = min(a, sa)
-                self.profit['buy'] -= price*amount
 
         elif self.bSignal == 'open_sell':
             a = self.amount_hold['max'] - self.amount_hold['sell']
             if a > 0:
                 price = bp
                 amount = min(a, ba)
-                self.profit['sell'] -= price*amount
 
         elif self.bSignal == 'loss_buy' or self.bSignal == 'margin_buy':
             a = self.amount_hold['buy']
             if a > 0:
                 price = bp
                 amount = min(a, ba)
-                self.profit['buy'] += price*amount
-        
+
         elif self.bSignal == 'loss_sell' or self.bSignal == 'margin_sell':
             a = self.amount_hold['sell']
             if a > 0:
                 price = sp
                 amount = min(a, sa)
-                self.profit['sell'] += price*amount
 
         if price > 0 and amount > 0:
             ttype = self.trade_type[self.bSignal]
-            fwk.trade(cfg.get_pair(), ttype, price, amount)
-            self.trade_history.append([time.time(), self.bSignal, price, amount])
-        ##record the trade history
-        if len(self.trade_history) > 0:
-            profit = {}
-            profit['buy'] = self.profit['buy'] + self.amount_hold['buy']*bp
-            profit['sell'] = self.profit['sell'] + self.amount_hold['sell']*sp
-            log.info("trade history: %s profit:%s"%(self.trade_history, profit))
+            log.info("trade type:%s price:%f, amount:%f"%(self.bSignal, price, amount))
+            self._trade(ttype, price, amount) 
+            ##log runtime profit
+            runtime_profit = {}
+            runtime_profit['buy'] = self.profit['buy'] + self.amount_hold['buy']*bp
+            runtime_profit['sell'] = -(self.profit['sell'] + self.amount_hold['sell']*sp) ##sell ticket have inverted profit
+            log.info("runtime_profit:%s"%(runtime_profit))
 
     def process(self, depth):
         bp = depth['buy'][0][0]  #price buy
@@ -179,12 +201,11 @@ class app():
 
         gap = gaps(bp, sp)
         if gap > 0.2:
-            log.info("gap=%f low volume, don't operate!"%(gap))
+            log.dbg("gap=%f low volume, don't operate!"%(gap))
             return
         self.bbands_signal((bp+sp)/2)
-        log.dbg(self.bSignal)
         self.trade(bp, ba, sp, sa)
-
+        
 
 ##        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))
 ##        log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
@@ -459,6 +480,11 @@ class app():
     
 if __name__ == '__main__':
     run = app()
+    run.help_list[13][0]()
+    time.sleep(1000000)
+    rum.help_list[0][0]()
+    exit()
+
     while True:
         run.help_menu()
         try:

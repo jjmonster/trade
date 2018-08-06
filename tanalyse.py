@@ -24,7 +24,7 @@ class Bbands():
         while self.data.empty == True:
             log.info("waiting kline data!")
             time.sleep(1)
-        return self.data['up'], self.data['low'], self.data['ma5'], self.data['ma10']
+        return self.data['up'], self.data['low'], self.data['ma10'], self.data['ma20']
         
     def get_last_band(self):
         while self.data.empty == True:
@@ -34,13 +34,13 @@ class Bbands():
         return last_row['up'], last_row['low'], last_row['ma10'], last_row['ma20']
         
     def handle_data(self, kl):
-        log.dbg("handle kline data")
         self.kl = kl
         cp = kl['c']
         #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
         self.data['up'], self.data['ma5'], self.data['low'] = ta.BBANDS(cp, timeperiod = 5, nbdevup = 1, nbdevdn = 1, matype = 0)
         self.data['ma10'] = ta.MA(cp, 10)
         self.data['ma20'] = ta.MA(cp, 20)
+        log.info("bband handle kline data up=%f, low=%f, ma10=%f, ma20=%f"%(self.get_last_band()))
 
     def coordinate_repeat(self, x, y): ##polygonal line
         arr1 = list(np.array(x).repeat(2))
