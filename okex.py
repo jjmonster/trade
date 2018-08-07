@@ -142,15 +142,17 @@ class OKCoinAPI(OKCoinBase):
     def _signed_request(self, params, res):
         params['sign'] = self._request.sign(params, cfg.get_secretKey())
         headers = cfg.get_cfg_header()
-        url = cfg.get_url() + OKCoinBase.RESOURCES_URL[res]
+        url = cfg.get_url() + res
         print(url, params, headers)
         return self._request.post(url, params, headers)
-    
+
+    #######future and spot public
     def user_info(self):
         params = {'api_key': cfg.get_id()}
-        return self._signed_request(params, 'user_info')
+        res = OKCoinBase.RESOURCES_URL['user_info'].format('future_' if self._future_or_spot else '')
+        return self._signed_request(params, res)
 
-    def trade(self, symbol, price='', amount='', trade_type='', match_price=''):
+    def trade(self, symbol, price, amount, trade_type, match_price):
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
@@ -162,7 +164,8 @@ class OKCoinAPI(OKCoinBase):
         if self._future_or_spot:
             params['contract_type'] = self._contract_type
             params['lever_rate'] = 10
-        return self._signed_request(params, 'trade')
+        res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if self._future_or_spot else '')
+        return self._signed_request(params, res)
 
     def batch_trade(self, symbol, orders_data):
         params = {
@@ -173,7 +176,8 @@ class OKCoinAPI(OKCoinBase):
         if self._future_or_spot:
             params['contract_type'] = self._contract_type
             params['lever_rate'] = 10
-        return self._signed_request(params, 'batch_trade')
+        res = OKCoinBase.RESOURCES_URL['batch_trade'].format('future_' if self._future_or_spot else '')
+        return self._signed_request(params, res)
 
     def order_info(self, symbol, order_id, status, current_page, page_length):
         params = {
@@ -186,7 +190,8 @@ class OKCoinAPI(OKCoinBase):
         }
         if self._future_or_spot:
             params['contract_type'] = self._contract_type
-        return self._signed_request(params, 'order_info')
+        res = OKCoinBase.RESOURCES_URL['order_info'].format('future_' if self._future_or_spot else '')
+        return self._signed_request(params, res)
 
     def orders_info(self, symbol, order_id):
         params = {
@@ -196,7 +201,8 @@ class OKCoinAPI(OKCoinBase):
         }
         if self._future_or_spot:
             params['contract_type'] = self._contract_type
-        return self._signed_request(params, 'orders_info')
+        res = OKCoinBase.RESOURCES_URL['orders_info'].format('future_' if self._future_or_spot else '')
+        return self._signed_request(params, res)
 
     #####future private
     def future_position(self, symbol):
@@ -205,7 +211,8 @@ class OKCoinAPI(OKCoinBase):
             'symbol': symbol,
             'contract_type':self._contract_type
         }
-        return self._signed_request(params, 'position')
+        res = OKCoinBase.RESOURCES_URL['position']
+        return self._signed_request(params, res)
         
     def future_trade_history(self, symbol, date, since):
         params = {
@@ -214,7 +221,8 @@ class OKCoinAPI(OKCoinBase):
             'date': date,
             'since': since
         }
-        return self._signed_request(params, 'trade_history')
+        res = OKCoinBase.RESOURCES_URL['trade_history']
+        return self._signed_request(params, res)
 
     def future_cancel(self, symbol, order_id):
         params = {
@@ -223,11 +231,13 @@ class OKCoinAPI(OKCoinBase):
             'order_id': order_id,
             'contract_type': self._contract_type
         }
-        return self._signed_request(params, 'cancel')
+        res = OKCoinBase.RESOURCES_URL['cancel']
+        return self._signed_request(params, res)
 
     def future_user_info_4fix(self):
         params = {'api_key': cfg.get_id()}
-        return self._signed_request(params, 'user_info_4fix')
+        res = OKCoinBase.RESOURCES_URL['user_info_4fix']
+        return self._signed_request(params, res)
     
     def future_position_4fix(self, symbol, trade_type):
         params = {
@@ -236,7 +246,8 @@ class OKCoinAPI(OKCoinBase):
             'contract_type': self._contract_type,
             'type': trade_type
         }
-        return self._signed_request(params, 'position_4fix')
+        res = OKCoinBase.RESOURCES_URL['position_4fix']
+        return self._signed_request(params, res)
 
     def future_explosive(self, symbol, status, current_page, page_number, page_length):
         params = {
@@ -248,7 +259,8 @@ class OKCoinAPI(OKCoinBase):
             'page_number': page_number,
             'page_length': page_length
         }
-        return self._signed_request(params, 'explosive')
+        res = OKCoinBase.RESOURCES_URL['explosive']
+        return self._signed_request(params, res)
 
 
     #######sopt private
@@ -262,7 +274,8 @@ class OKCoinAPI(OKCoinBase):
             'withdraw_amount': withdraw_amount,
             'target': target
         }
-        return self._signed_request(params, 'withdraw')
+        res = OKCoinBase.RESOURCES_URL['withdraw']
+        return self._signed_request(params, res)
 
     def cancel_withdraw(self, symbol, withdraw_id):
         params = {
@@ -270,7 +283,8 @@ class OKCoinAPI(OKCoinBase):
             'symbol': symbol,
             'withdraw_id': withdraw_id
         }
-        return self._signed_request(params, 'cancel_withdraw')
+        res = OKCoinBase.RESOURCES_URL['cancel_withdraw']
+        return self._signed_request(params, res)
 
     def withdraw_info(self, symbol, withdraw_id):
         params = {
@@ -278,15 +292,27 @@ class OKCoinAPI(OKCoinBase):
             'symbol': symbol,
             'withdraw_id': withdraw_id
         }
-        return self._signed_request(params, 'withdraw_info')
+        res = OKCoinBase.RESOURCES_URL['withdraw_info']
+        return self._signed_request(params, res)
 
 
 okb = OKCoinAPI()
 
 if __name__ == '__main__':
     print(okb.ticker(cfg.get_pair()))
-#    print(okb.depth(cfg.get_pair(), 5, 0))
-#    print(okb.kline(cfg.get_pair(), '1hour', 10))
-#    print(okb.trades(cfg.get_pair()))
-#    print(okb.user_info())
+    #print(okb.depth(cfg.get_pair(), 5, 0))
+    #print(okb.kline(cfg.get_pair(), '1hour', 10))
+    #print(okb.trades(cfg.get_pair()))
+    #print(okb.future_index(cfg.get_pair()))
+    #print(okb.future_exchange_rate())
+    #print(okb.future_estimated_price(cfg.get_pair()))
+    #print(okb.future_hold_amount(cfg.get_pair()))
+    #print(okb.future_price_limit(cfg.get_pair()))
+
+    print(okb.user_info())
+    #print(okb.trade(cfg.get_pair(), 1, 1, 1, 0))
+    #print(okb.order_info(cfg.get_pair(), -1, 1, 1, 50))
+    #print(okb.future_position(cfg.get_pair()))
+    #print(okb.future_trade_history(cfg.get_pair(), "2018-08-01", 0))
+    #print(okb.future_explosive(cfg.get_pair(), 0, 1, 1, 50))
 
