@@ -7,7 +7,7 @@ def gaps(n1, n2):
     return digits(abs(n1-n2)*100/((n1+n2)/2), 6)
 
 def isclose(n1, n2):
-    if gaps(n1, n2) < 0.1:
+    if gaps(n1, n2) < 0.05:
         return True
     return False
 

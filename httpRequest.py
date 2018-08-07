@@ -17,7 +17,7 @@ class httpRequest(object):
 
     def md5sign(self, sig_str):
         hl = hashlib.md5()
-        print("sig_str:",sig_str)
+        #print("sig_str:",sig_str)
         hl.update(sig_str.encode(encoding='utf-8'))
         signature = str.upper(hl.hexdigest())
         return signature
@@ -28,11 +28,11 @@ class httpRequest(object):
             for key in sorted(dic.keys()):
                 s += key + '=' + str(dic[key]) + '&'
             s = s.rstrip('&')
-        print("dict2str:", s)
+        #print("dict2str:", s)
         return s
     
     def sign(self, params, secret_key):
-        print("sign", params, secret_key)
+        #print("sign", params, secret_key)
         sig_str = self.dict2str(params)
         sig_str += '&'+'secret_key='+secret_key
         return self.md5sign(sig_str)
@@ -40,9 +40,8 @@ class httpRequest(object):
     def request(self, method, r_url, params, *headers):
         try:
             if method == 'POST':
-                r = requests.request(method, r_url, headers = headers[0], json=params,timeout=20)
+                r = requests.request(method, r_url, headers = headers[0], data=params,timeout=20)
             else: #GET DELETE
-                
                 r = requests.request(method, r_url, params=params, timeout=20)
             r.raise_for_status()
         except requests.exceptions.HTTPError as err:

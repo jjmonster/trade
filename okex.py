@@ -214,14 +214,14 @@ class OKCoinAPI(OKCoinBase):
         res = OKCoinBase.RESOURCES_URL['position']
         return self._signed_request(params, res)
         
-    def future_trade_history(self, symbol, date, since):
+    def future_trades_history(self, symbol, date, since):
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
             'date': date,
             'since': since
         }
-        res = OKCoinBase.RESOURCES_URL['trade_history']
+        res = OKCoinBase.RESOURCES_URL['trades_history']
         return self._signed_request(params, res)
 
     def future_cancel(self, symbol, order_id):
@@ -313,6 +313,6 @@ if __name__ == '__main__':
     #print(okb.trade(cfg.get_pair(), 1, 1, 1, 0))
     #print(okb.order_info(cfg.get_pair(), -1, 1, 1, 50))
     #print(okb.future_position(cfg.get_pair()))
-    #print(okb.future_trade_history(cfg.get_pair(), "2018-08-01", 0))
+    #print(okb.future_trades_history(cfg.get_pair(), "2018-08-01", 0))
     #print(okb.future_explosive(cfg.get_pair(), 0, 1, 1, 50))
 

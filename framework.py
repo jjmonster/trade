@@ -16,11 +16,11 @@ class framework():
         self._plat = cfg.get_cfg_plat()
 
     def get_all_pair(self):
-        data = []
+        pairs = []
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_list()
-                data = [item.lower() for item in data]
+                pairs = [item.lower() for item in data]
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
@@ -29,8 +29,8 @@ class framework():
                 pass
 
         except:
-            log.err("Exception on get_all_pair!")
-        return data
+            log.err("Exception on get_all_pair! data:%s"%data)
+        return pairs
 
     def get_last_price(self,pair):
         data = 0
@@ -41,12 +41,12 @@ class framework():
                 #data = ft.get_market_ticker(pair)
                 pass
             elif self._plat == 'okex':
-                pass
+                data = okb.ticker(pair)['last']
             else:
                 pass
 
         except:
-            log.err("Exception on get_price!")
+            log.err("Exception on get_last_price! data:%s"%data)
         return data
 
     def get_price(self, pair):
@@ -65,19 +65,20 @@ class framework():
                 #data = ft.get_market_ticker(pair)
                 pass
             elif self._plat == 'okex':
-                #'high' 'vol' 'day_high' 'last' 'low' 'contract_id' 'buy' 'sell' 'coin_vol' 'day_low' 'unit_amount'
-                price = okb.ticker(pair)
+                data = okb.ticker(pair)
+                price = data
             else:
                 pass                
         except:
-            log.err("Exception on get_price!")
+            log.err("Exception on get_price! data:%s"%data)
         return price
 
     def get_price_all(self):
-        data = []
+        prices = []
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_data_all()
+                prices = data
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
@@ -85,8 +86,8 @@ class framework():
             else:
                 pass
         except:
-            log.err("Exception on get_price_all!")
-        return data
+            log.err("Exception on get_price_all! data:%s"%data)
+        return prices
 
     def get_depth(self, pair):
         depth = defaultdict(lambda: None)
@@ -104,7 +105,7 @@ class framework():
             else:
                 pass
         except:
-            log.err("Exception on get_depth!")
+            log.err("Exception on get_depth! data:%s"%data)
         return depth
 
     def get_kline(self, pair, dtype, limit):
@@ -115,8 +116,7 @@ class framework():
                 if len(data) > 0:
                     for i in data:
                         i.pop()  ##remove the last market string
-                data = s2f(data)
-                kl = pd.DataFrame(data, columns=['t','o', 'c','h', 'l', 'v', 'a'])
+                kl = pd.DataFrame(s2f(data), columns=['t','o', 'c','h', 'l', 'v', 'a'])
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
@@ -126,17 +126,17 @@ class framework():
                 pass
 
         except:
-            log.err("Exception on get_kline!")
+            log.err("Exception on get_kline! data:%s"%data)
         return kl
 
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)
         try:
             if self._plat == 'coinex':
-                balance = cet.inquire_account_info()[symbol.upper()]
-                balance['available'] = s2f(balance['available'])
-                balance['frozen'] = s2f(balance['frozen'])
-                balance['balance'] = balance['available'] + balance['frozen']
+                data = cet.inquire_account_info()[symbol.upper()]
+                balance['available'] = s2f(data['available'])
+                balance['frozen'] = s2f(data['frozen'])
+                balance['balance'] = data['available'] + data['frozen']
             elif self._plat == 'fcoin':
                 pass
             elif self._plat == 'okex':
@@ -145,15 +145,15 @@ class framework():
                 pass
 
         except:
-            log.err("Exception on get_balance!")
+            log.err("Exception on get_balance! data:%s"%data)
         return balance
 
     def get_balance_all(self):
         balance = defaultdict(lambda: None)
         try:
             if self._plat == 'coinex':
-                balance = cet.inquire_account_info()
-                for i in balance.items():
+                data = cet.inquire_account_info()
+                for i in data.items():
                     balance[i[0]]['available'] = s2f(i[1]['available'])
                     balance[i[0]]['frozen'] = s2f(i[1]['frozen'])
                     balance[i[0]]['balance'] = s2f(i[1]['available']) + s2f(i[1]['frozen'])
@@ -166,7 +166,7 @@ class framework():
                 pass
 
         except:
-            log.err("Exception on get_balance_all!")
+            log.err("Exception on get_balance_all! data:%s"%data)
 
         return balance
 
