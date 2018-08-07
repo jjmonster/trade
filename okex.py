@@ -56,16 +56,9 @@ class OKCoinBase(object):
     kline_types = ('1min','3min','5min','15min','30min','1hour','2hour','4hour','6hour','12hour','1day','3day','1week')
 
     def __init__(self):
-        """
-        Constructor for class of OKCoinBase.
-        :param url: Base URL for REST API of Future
-        :param api_key: String of API KEY
-        :param secret_key: String of SECRET KEY
-        :return: None
-        """
-        self._url = cfg.get_cfg('base_url')
-        self._api_key = cfg.get_cfg('id')
-        self._secret_key = cfg.get_cfg('secret_key')
+        #self._url = cfg.get_cfg('base_url')
+        #self._api_key = cfg.get_cfg('id')
+        #self._secret_key = cfg.get_cfg('secret_key')
         self._contract_type = cfg.get_cfg('future_contract_type')
         self._future_or_spot = True if cfg.get_cfg('future_or_spot') == 'future' else False
         self._request = httpRequest()
@@ -76,7 +69,6 @@ class OKCoinAPI(OKCoinBase):
         super(OKCoinAPI, self).__init__()
 
     @classmethod
-    #######################market api#################
     def build_request_string(self, name, value, params='', choice=()):
         if value:
             if value in choice:
@@ -85,7 +77,7 @@ class OKCoinAPI(OKCoinBase):
                 raise ValueError('{0} should be in {1}'.format(value), choice)
         else:
             return params
-
+#######################market api#################
     def ticker(self, symbol):
         params = {'symbol':symbol}
         if self._future_or_spot:
@@ -118,6 +110,7 @@ class OKCoinAPI(OKCoinBase):
             data[i][0] = data[i][0]/1000
         return data
 
+    ######future private
     def future_index(self, symbol):
         params = {'symbol':symbol}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['index']
@@ -145,121 +138,109 @@ class OKCoinAPI(OKCoinBase):
         return self._request.get(url, params)
 
 
-    #######################deal api################
-    def user_info(self):
-        params = {'api_key': cfg.get_id()}
+#######################deal api################
+    def _signed_request(self, params, res):
         params['sign'] = self._request.sign(params, cfg.get_secretKey())
         headers = cfg.get_cfg_header()
-        print(params, headers)
-        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['user_info']
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL[res]
+        print(url, params, headers)
         return self._request.post(url, params, headers)
-
     
-    def future_position(self, symbol):
-        params = {
-            'api_key': self._api_key,
-            'symbol': symbol,
-            'contract_type': self._contract_type
-        }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['position'], params)
+    def user_info(self):
+        params = {'api_key': cfg.get_id()}
+        return self._signed_request(params, 'user_info')
 
-    # 期货下单
-    def future_trade(self, symbol, price='', amount='', trade_type='', match_price='', lever_rate=''):
+    def trade(self, symbol, price='', amount='', trade_type='', match_price=''):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
-            'contract_type': self._contract_type,
+            'price': price,
             'amount': amount,
             'type': trade_type,
-            'match_price': match_price,
-            'lever_rate': lever_rate
+            'match_price': match_price
         }
-        if price:
-            params['price'] = price
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['trades'], params)
+        if self._future_or_spot:
+            params['contract_type'] = self._contract_type
+            params['lever_rate'] = 10
+        return self._signed_request(params, 'trade')
 
-    # 获取OKEX合约交易历史（非个人）
+    def batch_trade(self, symbol, orders_data):
+        params = {
+            'api_key': cfg.get_id(),
+            'symbol': symbol,
+            'orders_data':orders_data
+        }
+        if self._future_or_spot:
+            params['contract_type'] = self._contract_type
+            params['lever_rate'] = 10
+        return self._signed_request(params, 'batch_trade')
+
+    def order_info(self, symbol, order_id, status, current_page, page_length):
+        params = {
+            'api_key': cfg.get_id(),
+            'symbol': symbol,
+            'status':status,
+            'order_id':order_id,
+            'current_page':current_page,
+            'page_length':page_length
+        }
+        if self._future_or_spot:
+            params['contract_type'] = self._contract_type
+        return self._signed_request(params, 'order_info')
+
+    def orders_info(self, symbol, order_id):
+        params = {
+            'api_key': cfg.get_id(),
+            'symbol': symbol,
+            'order_id': order_id
+        }
+        if self._future_or_spot:
+            params['contract_type'] = self._contract_type
+        return self._signed_request(params, 'orders_info')
+
+    #####future private
+    def future_position(self, symbol):
+        params = {
+            'api_key': cfg.get_id(),
+            'symbol': symbol,
+            'contract_type':self._contract_type
+        }
+        return self._signed_request(params, 'position')
+        
     def future_trade_history(self, symbol, date, since):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
             'date': date,
             'since': since
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['trades_history'], params)
+        return self._signed_request(params, 'trade_history')
 
-    # 期货批量下单
-    def future_batch_trade(self, symbol,      orders_data, lever_rate):
-        params = {
-            'api_key': self._api_key,
-            'symbol': symbol,
-            'contract_type': self._contract_type,
-            'orders_data': orders_data,
-            'lever_rate': lever_rate
-        }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['batch_trade'], params)
-
-    # 期货取消订单
     def future_cancel(self, symbol, order_id):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
-            'contract_type': self._contract_type,
-            'order_id': order_id
-        }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['cancel'], params)
-
-    # 期货获取订单信息
-    def future_order_info(self, symbol, order_id, status, current_page, page_length):
-        params = {
-            'api_key': self._api_key,
-            'symbol': symbol,
-            'contract_type': self._contract_type,
             'order_id': order_id,
-            'status': status,
-            'current_page': current_page,
-            'page_length': page_length
+            'contract_type': self._contract_type
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['order_info'], params)
+        return self._signed_request(params, 'cancel')
 
-    # 期货获取订单信息
-    def future_orders_info(self, symbol, order_id):
-        params = {
-            'api_key': self._api_key,
-            'symbol': symbol,
-            'contract_type': self._contract_type,
-            'order_id': order_id
-        }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['orders_info'], params)
-
-    # 期货逐仓账户信息
     def future_user_info_4fix(self):
-        params = {'api_key': self._api_key}
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['user_info_4fix'], params)
-
-    # 期货逐仓持仓信息
+        params = {'api_key': cfg.get_id()}
+        return self._signed_request(params, 'user_info_4fix')
+    
     def future_position_4fix(self, symbol, trade_type):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
             'contract_type': self._contract_type,
             'type': trade_type
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['position_4fix'], params)
+        return self._signed_request(params, 'position_4fix')
 
-    # 获取合约爆仓单
     def future_explosive(self, symbol, status, current_page, page_number, page_length):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
             'contract_type': self._contract_type,
             'status': status,
@@ -267,13 +248,13 @@ class OKCoinAPI(OKCoinBase):
             'page_number': page_number,
             'page_length': page_length
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['explosive'], params)
+        return self._signed_request(params, 'explosive')
 
-    # 提币BTC/LTC
-    def future_withdraw(self, symbol, charge_fee, trade_pwd, withdraw_address, withdraw_amount, target):
+
+    #######sopt private
+    def withdraw(self, symbol, charge_fee, trade_pwd, withdraw_address, withdraw_amount, target):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
             'charge_fee': charge_fee,
             'trade_pwd': trade_pwd,
@@ -281,28 +262,23 @@ class OKCoinAPI(OKCoinBase):
             'withdraw_amount': withdraw_amount,
             'target': target
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['withdraw'], params)
+        return self._signed_request(params, 'withdraw')
 
-    # 取消提币BTC/LTC
-    def future_cancel_withdraw(self, symbol, withdraw_id):
+    def cancel_withdraw(self, symbol, withdraw_id):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
             'withdraw_id': withdraw_id
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['cancel_withdraw'], params)
+        return self._signed_request(params, 'cancel_withdraw')
 
-    # 查询提币BTC/LTC信息
-    def future_withdraw_info(self, symbol, withdraw_id):
+    def withdraw_info(self, symbol, withdraw_id):
         params = {
-            'api_key': self._api_key,
+            'api_key': cfg.get_id(),
             'symbol': symbol,
             'withdraw_id': withdraw_id
         }
-        params['sign'] = HttpsRequest.sign(params, self._secret_key)
-        return HttpsRequest.post(OKCoinBase.RESOURCES_URL['withdraw_info'], params)
+        return self._signed_request(params, 'withdraw_info')
 
 
 okb = OKCoinAPI()
