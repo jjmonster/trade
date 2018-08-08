@@ -17,6 +17,7 @@ class framework():
 
     def get_all_pair(self):
         pairs = []
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_list()
@@ -33,24 +34,28 @@ class framework():
         return pairs
 
     def get_last_price(self,pair):
-        data = 0
+        price = 0
+        data = None
         try:
             if self._plat == 'coinex':
-                data = s2f(cet.acquire_market_data(pair)['last'])
+                data = s2f(cet.acquire_market_data(pair))
+                price = data['last']
             elif self._plat == 'fcoin':
                 #data = ft.get_market_ticker(pair)
                 pass
             elif self._plat == 'okex':
-                data = okb.ticker(pair)['last']
+                data = okb.ticker(pair)
+                price = data['last']
             else:
                 pass
 
         except:
             log.err("Exception on get_last_price! data:%s"%data)
-        return data
+        return price
 
     def get_price(self, pair):
         price = defaultdict(lambda: None)
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_data(pair)
@@ -75,6 +80,7 @@ class framework():
 
     def get_price_all(self):
         prices = []
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_data_all()
@@ -91,6 +97,7 @@ class framework():
 
     def get_depth(self, pair):
         depth = defaultdict(lambda: None)
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_market_depth(pair)
@@ -110,6 +117,7 @@ class framework():
 
     def get_kline(self, pair, dtype, limit):
         kl = pd.DataFrame()
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.acquire_K_line_data(pair, dtype, limit)
@@ -131,6 +139,7 @@ class framework():
 
     def get_balance(self, symbol):
         balance = defaultdict(lambda: None)
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.inquire_account_info()[symbol.upper()]
@@ -150,6 +159,7 @@ class framework():
 
     def get_balance_all(self):
         balance = defaultdict(lambda: None)
+        data = None
         try:
             if self._plat == 'coinex':
                 data = cet.inquire_account_info()

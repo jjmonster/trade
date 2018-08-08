@@ -20,7 +20,7 @@ class market:
             'depth':{'thandle':None, 'tfunc':self._update_depth, 'tperiod':1, 'data':[], 'func':[], 'reg':0},
             'kline':{'thandle':None, 'tfunc':self._update_kline, 'tperiod':3600, 'data':pd.DataFrame(), 'func':[], 'reg':0},
         } ##defaultdict(lambda:[])  
-
+      
     def get_price(self):
         return self.data_handles['price']['data']
 
@@ -56,10 +56,13 @@ class market:
 
     def _update_depth(self):
         handles = self.data_handles['depth']
+        #t1 = time.time()
         handles['data'] = fwk.get_depth(cfg.get_pair())
+        t = time.time()
+        #print(int(t-t1)) #time consume 
         if handles['data'] != None and len(handles['data']) > 0:
             for f in handles['func']:
-                f(handles['data'])
+                f(t, handles['data'])
         if handles['reg'] > 0:
             handles['thandle'] = threading.Timer(handles['tperiod'], handles['tfunc'])
             handles['thandle'].start()

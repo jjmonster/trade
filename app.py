@@ -58,6 +58,9 @@ class app():
         #variables for automatic 
         self.robot_running = 0
 
+        #variables for test back
+        self.testing = False
+
     def help_menu(self):
         print("\n usage: python -u %s"%__file__)
         index = 0
@@ -217,8 +220,12 @@ class app():
             log.info("going to trade! type:%s price:%f, amount:%f"%(self.bSignal, price, amount))
             self._trade(ttype, price, amount) 
 
-    def bbands_signal(self, price):
-        up,low,ma_fast,ma_slow = bbands.get_last_band()
+    def bbands_signal(self, timestamp, price):
+        if self.testing == True:
+            up,low,ma_fast,ma_slow = bbands.get_band_timestamp(timestamp)
+        else:
+            up,low,ma_fast,ma_slow = bbands.get_last_band()
+
         if isclose(ma_fast, ma_slow):
             self.bSignal = 'ma_close' #Shock market,don't operate
         elif isclose(price, ma_fast):
@@ -255,26 +262,26 @@ class app():
 
         self.prev_sig = self.bSignal
 
-    def process(self, depth):
-        self.depth_handle += 1
+    def process(self,   timestamp, depth):
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
         sa = depth['sell'][0][1] #amount sell
-
-        gap = gaps(bp, sp)
-        if gap > 0.2:
-            log.dbg("gap=%f low volume, don't operate!"%(gap))
-            return
-        self.bbands_signal((bp+sp)/2)
-        self.trade(bp, ba, sp, sa)
-
+        self.depth_handle += 1
         if self.depth_handle%60 == 0:
             ##log runtime profit
             runtime_profit = {}
             runtime_profit['buy'] = self.profit['buy'] + self.amount_hold['buy']*bp
             runtime_profit['sell'] = -(self.profit['sell'] + self.amount_hold['sell']*sp) ##sell ticket have inverted profit
-            log.dbg("runtime_profit:%s"%(runtime_profit))
+            log.dbg("runtime_profit:%s %d"%(runtime_profit, self.depth_handle))
+
+        gap = gaps(bp, sp)
+        if gap > 0.2:
+            log.dbg("gap=%f low volume, don't operate!"%(gap))
+            return
+        self.bbands_signal(timestamp, (bp+sp)/2)
+        self.trade(bp, ba, sp, sa)
+
 
 ##        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))
 ##        log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
@@ -408,6 +415,17 @@ class app():
             mkt.unregister_handle('depth', self.process)
             self.robot_running = 0
 
+
+    def test_back(self):
+        self.testing = True
+        kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=1000)
+        p = kl_1min['c']
+        t = kl_1min['t']
+        for i in range(t.size):
+            dummy_depth = {'buy':[[p[i], 1000]],'sell':[[p[i], 1000]]}
+            self.process(t[i], dummy_depth)
+        self.testing = False
+        
     def exit(self):
         if self.robot_running == 1:
             self.stop_robot()        

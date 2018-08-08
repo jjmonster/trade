@@ -24,7 +24,19 @@ class Bbands():
         while self.data.empty == True:
             log.info("waiting kline data!")
             time.sleep(1)
-        return self.data['up'], self.data['low'], self.data['ma_fast'], self.data['ma_slow']
+        return self.data
+    def get_band_timestamp(self, timestamp):
+        while self.data.empty == True:
+            log.info("get_last_band waiting data!")
+            time.sleep(1)
+        t = self.data['t']
+        for i in range(t.size)-1:
+            if t[i] <= timestamp and t[i+1] > timestamp:
+                row = i
+        if t[i+1] <= tiemstamp:
+            row = i+1
+        row_data = self.data.iloc[row]
+        return row_data['up'], row_data['low'], row_data['ma_fast'], row_data['ma_slow']
         
     def get_last_band(self):
         while self.data.empty == True:
@@ -36,8 +48,9 @@ class Bbands():
     def handle_data(self, kl):
         self.kl = kl
         cp = kl['c']
+        self.data['t'] = kl['t']
         #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
-        self.data['up'], self.data['bma'], self.data['low'] = ta.BBANDS(cp, timeperiod = 10, nbdevup = 1, nbdevdn = 1, matype = 0)
+        self.data['up'], self.data['bma'], self.data['low'] = ta.BBANDS(cp, timeperiod = 10, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
         self.data['ma_fast'] = ta.MA(cp, 5)
         self.data['ma_slow'] = ta.MA(cp, 10)
         log.info("bband handle kline data up=%f, low=%f, ma_fast=%f, ma_slow=%f"%(self.get_last_band()))
