@@ -5,7 +5,7 @@
 
 import sys
 from config import cfg
-from logger import log
+from logger import log,trade_his
 from framework import fwk
 from market import mkt
 from tanalyse import bbands
@@ -182,8 +182,9 @@ class app():
                 self.amount_hold['sell'] -= amount
 
             ##record the trade history
-            self.trade_history.append([time.time(), self.bSignal, price, amount])
-            log.info("trade history: %s"%(self.trade_history))
+            #self.trade_history.append([time.time(), self.bSignal, price, amount])
+            #log.info("trade history: %s"%(self.trade_history))
+            trade_his.info("%s"%([time.time(), self.bSignal, price, amount]))
 
         
     def trade(self, bp, ba, sp, sa):

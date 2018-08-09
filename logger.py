@@ -4,12 +4,12 @@
 import logging,os
 
 class Logger:
-    def __init__(self):
+    def __init__(self, pathfile):
         print("logger init instance...")
-        path = "log.log"
+        file = pathfile
         clevel = logging.DEBUG
         Flevel = logging.INFO
-        self.logger = logging.getLogger(path)
+        self.logger = logging.getLogger(file)
         self.logger.setLevel(logging.DEBUG)
         fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', '%Y-%m-%d %H:%M:%S')
         #Stream handle
@@ -18,7 +18,7 @@ class Logger:
         sh.setLevel(clevel)
         self.logger.addHandler(sh)
         #File handle
-        fh = logging.FileHandler(path)
+        fh = logging.FileHandler(file)
         fh.setFormatter(fmt)
         fh.setLevel(Flevel)
         self.logger.addHandler(fh)
@@ -42,7 +42,8 @@ class Logger:
     def cri(self,message):
         self.logger.critical(message)
 
-log = Logger()
+log = Logger("log.log")
+trade_his = Logger("trade_his.log")
 
 if __name__ =='__main__':
     #log = Logger()
