@@ -31,6 +31,7 @@ class app():
             (self.cancel_order_all,"cancel all order."),
             (self.start_robot,"start robot."),
             (self.stop_robot,"stop robot."),
+            (self.test_back, "test back"),
         ]
 
         #variables for mine
@@ -274,7 +275,7 @@ class app():
             runtime_profit = {}
             runtime_profit['buy'] = self.profit['buy'] + self.amount_hold['buy']*bp
             runtime_profit['sell'] = -(self.profit['sell'] + self.amount_hold['sell']*sp) ##sell ticket have inverted profit
-            log.dbg("runtime_profit:%s %d"%(runtime_profit, self.depth_handle))
+            log.dbg("runtime_profit:%s"%(runtime_profit))
 
         gap = gaps(bp, sp)
         if gap > 0.2:
@@ -419,11 +420,13 @@ class app():
 
     def test_back(self):
         self.testing = True
-        kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=1000)
+        kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=2000)
+        if(kl_1min.size <= 0):
+            return
         p = kl_1min['c']
         t = kl_1min['t']
         for i in range(t.size):
-            dummy_depth = {'buy':[[p[i], 1000]],'sell':[[p[i], 1000]]}
+            dummy_depth = {'buy':[[p[i]*0.999, 1000]],'sell':[[p[i]*1.001, 1000]]}
             self.process(t[i], dummy_depth)
         self.testing = False
         

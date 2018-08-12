@@ -25,16 +25,18 @@ class Bbands():
             log.info("waiting kline data!")
             time.sleep(1)
         return self.data
+
     def get_band_timestamp(self, timestamp):
         while self.data.empty == True:
-            log.info("get_last_band waiting data!")
+            log.info("get_band_timestamp waiting data!")
             time.sleep(1)
         t = self.data['t']
-        for i in range(t.size)-1:
+        for i in range(t.size -1):
             if t[i] <= timestamp and t[i+1] > timestamp:
                 row = i
-        if t[i+1] <= tiemstamp:
+        if t[i+1] <= timestamp:
             row = i+1
+
         row_data = self.data.iloc[row]
         return row_data['up'], row_data['low'], row_data['ma_fast'], row_data['ma_slow']
         
@@ -53,7 +55,7 @@ class Bbands():
         self.data['up'], self.data['bma'], self.data['low'] = ta.BBANDS(cp, timeperiod = 10, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
         self.data['ma_fast'] = ta.MA(cp, 5)
         self.data['ma_slow'] = ta.MA(cp, 10)
-        log.info("bband handle kline data up=%f, low=%f, ma_fast=%f, ma_slow=%f"%(self.get_last_band()))
+        log.info("bband last up=%f, low=%f, ma_fast=%f, ma_slow=%f"%(self.get_last_band()))
 
     def coordinate_repeat(self, x, y): ##polygonal line
         arr1 = list(np.array(x).repeat(2))
@@ -161,6 +163,8 @@ macd = Macd()
 if __name__ == '__main__':
     bbands.graphic()
     #macd.graphic()
+    #up,low,fast,slow = bbands.get_band_timestamp(1533968011)
+    #print(up, low, fast, slow)
     mkt.stop()
 
     
