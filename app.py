@@ -8,7 +8,7 @@ from config import cfg
 from logger import log,trade_his
 from framework import fwk
 from market import mkt
-from tanalyse import bbands
+from tanalyse import bbands, sma_fast, sma_slow
 from utils import *
 import time
 #import threading
@@ -224,9 +224,14 @@ class app():
 
     def bbands_signal(self, timestamp, price):
         if self.testing == True:
-            up,low,ma_fast,ma_slow = bbands.get_band_timestamp(timestamp)
+            up,low = bbands.get_band_timestamp(timestamp)
+            ma_fast = sma_fast.get_data_timestamp(timestamp)
+            ma_slow = sma_slow.get_data_timestamp(timestamp)
         else:
-            up,low,ma_fast,ma_slow = bbands.get_last_band()
+            up,low = bbands.get_last_band()
+            ma_fast = sma_fast.get_last_data()
+            ma_slow = sma_slow.get_last_data()
+
 
         if isclose(ma_fast, ma_slow):
             self.bSignal = 'ma_close' #Shock market,don't operate

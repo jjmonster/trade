@@ -13,49 +13,76 @@ import numpy as np
 import talib as ta
 import time
 
+
+def get_df_data(df):
+    while df.empty == True:
+        log.info("get_df_data waiting data!")
+        time.sleep(1)
+    return df
+    
+def get_df_data_timestamp(df, timestamp):
+    while df.empty == True:
+        log.info("get_df_data_timestamp waiting data!")
+        time.sleep(1)
+    t = df['t']
+    for i in range(t.size -1):
+        if t[i] <= timestamp and t[i+1] > timestamp:
+            row = i
+    if t[i+1] <= timestamp:
+        row = i+1
+    return df.iloc[row]
+
+def get_df_data_last(df):
+    while df.empty == True:
+        log.info("get_df_data_last waiting data!")
+        time.sleep(1)
+    return df.iloc[-1] #or irow(-1)?
+
+
+def _graphic(df, title):
+    fig = plt.figure(figsize=(12,8))
+    ax1= fig.add_subplot(111)
+    line_color = ('b','g','r','c','m','y','k','w')
+    line_maker = ('.',',','o') ###...
+    line_style = ('-', '--', '-.', ':')
+
+    t = list(map(datetime.fromtimestamp, df['t']))
+    for i in range(df.columns.size): #exclude 't'
+        if df.columns[i] == 't':
+            continue
+        column = df[df.columns[i]]
+        ax1.plot(t, column, line_color[i]+line_style[0])
+
+    ax1.set_title(title, fontproperties="SimHei")
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
+    ax1.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.show()
+
+
 class Bbands():
     def __init__(self):
         self.data = pd.DataFrame()
         self.kl = pd.DataFrame()
         mkt.register_handle('kline', self.handle_data)
 
-
     def get_bands(self):
-        while self.data.empty == True:
-            log.info("waiting kline data!")
-            time.sleep(1)
-        return self.data
+        return get_df_data(self.data)
 
     def get_band_timestamp(self, timestamp):
-        while self.data.empty == True:
-            log.info("get_band_timestamp waiting data!")
-            time.sleep(1)
-        t = self.data['t']
-        for i in range(t.size -1):
-            if t[i] <= timestamp and t[i+1] > timestamp:
-                row = i
-        if t[i+1] <= timestamp:
-            row = i+1
-
-        row_data = self.data.iloc[row]
-        return row_data['up'], row_data['low'], row_data['ma_fast'], row_data['ma_slow']
+        row_data = get_df_data_timestamp(self.data, timestamp)
+        return row_data['up'], row_data['low']
         
     def get_last_band(self):
-        while self.data.empty == True:
-            log.info("get_last_band waiting data!")
-            time.sleep(1)
-        last_row = self.data.iloc[-1] #or irow(-1)?
-        return last_row['up'], last_row['low'], last_row['ma_fast'], last_row['ma_slow']
+        last_row = get_df_data_last(self.data)
+        return last_row['up'], last_row['low']
         
     def handle_data(self, kl):
         self.kl = kl
-        cp = kl['c']
         self.data['t'] = kl['t']
         #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
-        self.data['up'], self.data['bma'], self.data['low'] = ta.BBANDS(cp, timeperiod = 10, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
-        self.data['ma_fast'] = ta.MA(cp, 5)
-        self.data['ma_slow'] = ta.MA(cp, 10)
-        log.info("bband last up=%f, low=%f, ma_fast=%f, ma_slow=%f"%(self.get_last_band()))
+        self.data['up'], self.data['ma'], self.data['low'] = ta.BBANDS(kl['c'], timeperiod = 10, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
 
     def coordinate_repeat(self, x, y): ##polygonal line
         arr1 = list(np.array(x).repeat(2))
@@ -68,28 +95,66 @@ class Bbands():
         while self.data.empty == True:
             log.info("waiting bbands data!")
             time.sleep(1)
-        cp = self.kl['c']
-        t = list(map(datetime.fromtimestamp, self.kl['t']))
-        fig = plt.figure(figsize=(12,8))
-        ax1= fig.add_subplot(111)
-        ax1.plot(t, cp, 'rd-', markersize=3)
-        x,y = self.coordinate_repeat(t, self.data['up'])
-        ax1.plot(x, y, 'y-')
-        x,y = self.coordinate_repeat(t, self.data['low'])
-        ax1.plot(x, y, 'y-')
+        df = pd.DataFrame()
+        df['c'] = self.kl['c']
+        df['t'] = self.kl['t']
+        df['up'] = self.data['up']
+        df['low'] = self.data['low']
+        #df['ma'] = self.data['ma'] ##use other ma, no need this
+        #x,y = self.coordinate_repeat(t, self.data['up'])
+        #x,y = self.coordinate_repeat(t, self.data['low'])
+        _graphic(df, "bbands")
 
-        ax1.plot(t, self.data['bma'], 'b-')
-        ax1.plot(t, self.data['ma_fast'], 'g-')
-        ax1.plot(t, self.data['ma_slow'], 'k-')
+class MaClass():
+    def __init__(self, type, timeperiod):
+        self.data = pd.DataFrame()
+        self.kl = pd.DataFrame()
+        self.type = type
+        self.timeperiod = timeperiod
+        mkt.register_handle('kline', self.handle_data)
 
-        ax1.set_title("bbands", fontproperties="SimHei")
-        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
-        ax1.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
-        plt.xticks(rotation=45)
-        plt.legend()
-        plt.show()
+    def get_data(self):
+        return get_df_data(self.data)
 
-bbands = Bbands()
+    def get_data_timestamp(self, timestamp):
+        row_data = get_df_data_timestamp(self.data, timestamp)
+        return row_data['real']
+
+    def get_last_data(self):
+        last_row = get_df_data_last(self.data)
+        return last_row['real']
+
+    def handle_data(self, kl):
+        self.kl = kl
+        self.data['t'] = kl['t']
+        if self.type == 'ma':
+            self.data['real'] = ta.MA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 'wma':
+            self.data['real'] = ta.WMA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 'sma':
+            self.data['real'] = ta.SMA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 'ema':
+            self.data['real'] = ta.EMA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 'dema':
+            self.data['real'] = ta.DEMA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 'trima':
+            self.data['real'] = ta.TRIMA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 'kama':
+            self.data['real'] = ta.KAMA(kl['c'], timeperiod = self.timeperiod)
+        elif self.type == 't3':
+            self.data['real'] = ta.KAMA(kl['c'], timeperiod = self.timeperiod, vfactor = 0)
+        else:
+            log.err("haven't implement ma type:%s"%(self.type))
+
+    def graphic(self):
+        while self.data.empty == True:
+            log.info("waiting MA data!")
+            time.sleep(1)
+        df = pd.DataFrame()
+        df['c'] = self.kl['c']
+        df['t'] = self.kl['t']
+        df['real'] = self.data['real']
+        _graphic(df, self.type)
 
 class Macd():
     def __init__(self):
@@ -158,13 +223,29 @@ class Macd():
         plt.legend()
         plt.show()
 
+
+kama = MaClass('kama', 10)
+sma_fast = MaClass('sma', 5)
+sma_slow = MaClass('sma', 10)
+bbands = Bbands()
 macd = Macd()
 
+def df_mix(*df):
+    data = df[0]
+    if len(df) > 1:
+        for i in range(len(df)-1):
+            data = pd.merge(data, df[i+1], how='left', on='t')
+    return data
+
 if __name__ == '__main__':
-    bbands.graphic()
+    #bbands.graphic()
     #macd.graphic()
-    #up,low,fast,slow = bbands.get_band_timestamp(1533968011)
-    #print(up, low, fast, slow)
+    kama.graphic()
+    #up,low = bbands.get_band_timestamp(1533968011)
+    #print(up, low)
+
+    #df = df_mix(sma_fast.get_data().rename(columns={'real':'fast'}), sma_slow.get_data().rename(columns={'real':'slow'}))
+    #_graphic(df, 'mixed')
     mkt.stop()
 
     

@@ -59,8 +59,8 @@ class OKCoinBase(object):
         #self._url = cfg.get_cfg('base_url')
         #self._api_key = cfg.get_cfg('id')
         #self._secret_key = cfg.get_cfg('secret_key')
-        self._contract_type = cfg.get_cfg('future_contract_type')
-        self._future_or_spot = True if cfg.get_cfg('future_or_spot') == 'future' else False
+        #self._contract_type = cfg.get_cfg('future_contract_type')
+        #self._future_or_spot = True if cfg.get_cfg('future_or_spot') == 'future' else False
         self._request = httpRequest()
 
 
@@ -80,30 +80,30 @@ class OKCoinAPI(OKCoinBase):
 #######################market api#################
     def ticker(self, symbol):
         params = {'symbol':symbol}
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
-        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['ticker'].format('future_' if self._future_or_spot else '')
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['ticker'].format('future_' if cfg.get_future_or_spot else '')
         return self._request.get(url, params)['ticker']
 
     def depth(self, symbol, size=0, merge=0):
         params = {'symbol':symbol, 'size':size, 'merge':merge}
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
-        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['depth'].format('future_' if self._future_or_spot else '')
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['depth'].format('future_' if cfg.get_future_or_spot else '')
         return self._request.get(url, params)
 
     def trades(self, symbol):
         params = {'symbol':symbol}
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
-        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['trades'].format('future_' if self._future_or_spot else '')
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['trades'].format('future_' if cfg.get_future_or_spot else '')
         return self._request.get(url, params)
 
     def kline(self, symbol, dtype, size = 0, since = 0):
         params = {'symbol':symbol, 'type':dtype, 'size':size, 'since':since}
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
-        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['kline'].format('future_' if self._future_or_spot else '')
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
+        url = cfg.get_url() + OKCoinBase.RESOURCES_URL['kline'].format('future_' if cfg.get_future_or_spot else '')
         #print(url, params)
         data = self._request.get(url, params) ## t o h l c v a
         for i in range(len(data)):
@@ -128,12 +128,12 @@ class OKCoinAPI(OKCoinBase):
         return self._request.get(url, params)['forecast_price']
 
     def future_hold_amount(self, symbol):
-        params = {'symbol':symbol, 'contract_type':self._contract_type}
+        params = {'symbol':symbol, 'contract_type':cfg.get_future_contract_type}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['hold_amount']
         return self._request.get(url, params)[0]['amount']
 
     def future_price_limit(self, symbol):
-        params = {'symbol':symbol, 'contract_type':self._contract_type}
+        params = {'symbol':symbol, 'contract_type':cfg.get_future_contract_type}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['price_limit']
         return self._request.get(url, params)
 
@@ -149,7 +149,7 @@ class OKCoinAPI(OKCoinBase):
     #######future and spot public
     def user_info(self):
         params = {'api_key': cfg.get_id()}
-        res = OKCoinBase.RESOURCES_URL['user_info'].format('future_' if self._future_or_spot else '')
+        res = OKCoinBase.RESOURCES_URL['user_info'].format('future_' if cfg.get_future_or_spot else '')
         return self._signed_request(params, res)
 
     def trade(self, symbol, price, amount, trade_type, match_price):
@@ -161,10 +161,10 @@ class OKCoinAPI(OKCoinBase):
             'type': trade_type,
             'match_price': match_price
         }
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
             params['lever_rate'] = 10
-        res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if self._future_or_spot else '')
+        res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if cfg.get_future_or_spot else '')
         return self._signed_request(params, res)
 
     def batch_trade(self, symbol, orders_data):
@@ -173,10 +173,10 @@ class OKCoinAPI(OKCoinBase):
             'symbol': symbol,
             'orders_data':orders_data
         }
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
             params['lever_rate'] = 10
-        res = OKCoinBase.RESOURCES_URL['batch_trade'].format('future_' if self._future_or_spot else '')
+        res = OKCoinBase.RESOURCES_URL['batch_trade'].format('future_' if cfg.get_future_or_spot else '')
         return self._signed_request(params, res)
 
     def order_info(self, symbol, order_id, status, current_page, page_length):
@@ -188,9 +188,9 @@ class OKCoinAPI(OKCoinBase):
             'current_page':current_page,
             'page_length':page_length
         }
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
-        res = OKCoinBase.RESOURCES_URL['order_info'].format('future_' if self._future_or_spot else '')
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
+        res = OKCoinBase.RESOURCES_URL['order_info'].format('future_' if cfg.get_future_or_spot else '')
         return self._signed_request(params, res)
 
     def orders_info(self, symbol, order_id):
@@ -199,9 +199,9 @@ class OKCoinAPI(OKCoinBase):
             'symbol': symbol,
             'order_id': order_id
         }
-        if self._future_or_spot:
-            params['contract_type'] = self._contract_type
-        res = OKCoinBase.RESOURCES_URL['orders_info'].format('future_' if self._future_or_spot else '')
+        if cfg.get_future_or_spot:
+            params['contract_type'] = cfg.get_future_contract_type
+        res = OKCoinBase.RESOURCES_URL['orders_info'].format('future_' if cfg.get_future_or_spot else '')
         return self._signed_request(params, res)
 
     #####future private
@@ -209,7 +209,7 @@ class OKCoinAPI(OKCoinBase):
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
-            'contract_type':self._contract_type
+            'contract_type':cfg.get_future_contract_type
         }
         res = OKCoinBase.RESOURCES_URL['position']
         return self._signed_request(params, res)
@@ -229,7 +229,7 @@ class OKCoinAPI(OKCoinBase):
             'api_key': cfg.get_id(),
             'symbol': symbol,
             'order_id': order_id,
-            'contract_type': self._contract_type
+            'contract_type': cfg.get_future_contract_type
         }
         res = OKCoinBase.RESOURCES_URL['cancel']
         return self._signed_request(params, res)
@@ -243,7 +243,7 @@ class OKCoinAPI(OKCoinBase):
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
-            'contract_type': self._contract_type,
+            'contract_type': cfg.get_future_contract_type,
             'type': trade_type
         }
         res = OKCoinBase.RESOURCES_URL['position_4fix']
@@ -253,7 +253,7 @@ class OKCoinAPI(OKCoinBase):
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
-            'contract_type': self._contract_type,
+            'contract_type': cfg.get_future_contract_type,
             'status': status,
             'current_page': current_page,
             'page_number': page_number,
