@@ -188,18 +188,17 @@ class app():
             trade_his.info("%s"%([time.time(), self.bSignal, price, amount]))
 
         
-    def trade(self, bp, ba, sp, sa):
-        if not self.bSignal in self.trade_type.keys():
-            return
-
+    def trade(self,  signal, bp, ba, sp, sa):
         price = amount = 0
-        if self.bSignal == 'open_buy':
-            a = self.amount_hold['max'] - self.amount_hold['buy']
-            if a > 0:
-                price = sp
+        trade_type = ''
+        if signal > 0:
+            price = sp
+            if self.amount_hold['sell'] > 0:
+                trade_type = ''
+            else:
+                a = self.amount_hold['max'] - self.amount_hold['buy']
                 amount = min(a, sa)
-
-        elif self.bSignal == 'open_sell':
+        elif signal < 0:
             a = self.amount_hold['max'] - self.amount_hold['sell']
             if a > 0:
                 price = bp
@@ -222,53 +221,6 @@ class app():
             log.info("going to trade! type:%s price:%f, amount:%f"%(self.bSignal, price, amount))
             self._trade(ttype, price, amount) 
 
-    def bbands_signal(self, timestamp, price):
-        if self.testing == True:
-            up,low = bbands.get_band_timestamp(timestamp)
-            ma_fast = sma_fast.get_data_timestamp(timestamp)
-            ma_slow = sma_slow.get_data_timestamp(timestamp)
-        else:
-            up,low = bbands.get_last_band()
-            ma_fast = sma_fast.get_last_data()
-            ma_slow = sma_slow.get_last_data()
-
-
-        if isclose(ma_fast, ma_slow):
-            self.bSignal = 'ma_close' #Shock market,don't operate
-        elif isclose(price, ma_fast):
-            if ma_fast > ma_slow: #upturn
-                self.bSignal = 'open_buy'
-            elif ma_fast < ma_slow: #downturn
-                self.bSignal = 'open_sell'
-        elif isclose(price, ma_slow):
-            if ma_fast > ma_slow: #upturn
-                self.bSignal = 'loss_buy'
-            elif ma_fast < ma_slow: #downturn
-                self.bSignal = 'loss_sell'
-        elif isclose(price, up):
-            if self.bSignal == 'upper':
-                self.bSignal = 'margin_buy'
-            else:
-                self.bSignal = 'up'
-        elif isclose(price, low):
-            if self.bSignal == 'lower':
-                self.bSignal = 'margin_sell'
-            else:
-                self.bSignal = 'low'
-        else:
-            if price > up:
-                self.bSignal = 'upper'
-            elif price < low:
-                self.bSignal = 'lower'
-            else:
-                self.bSignal ='free'
-
-        #test self.bSignal = 'open_sell'
-        if self.bSignal != self.prev_sig:  #self.bSignal in self.trade_type.keys():
-            log.info("bband signal:'%s' price:%.6f, up:%.6f low:%.6f fast:%.6f slow:%.6f"%(self.bSignal,price,up,low,ma_fast, ma_slow))
-
-        self.prev_sig = self.bSignal
-
     def process(self,   timestamp, depth):
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
@@ -286,8 +238,8 @@ class app():
         if gap > 0.2:
             log.dbg("gap=%f low volume, don't operate!"%(gap))
             return
-        self.bbands_signal(timestamp, (bp+sp)/2)
-        self.trade(bp, ba, sp, sa)
+        signal = bbands_signal(timestamp, (bp+sp)/2)
+        self.trade(signal, bp, ba, sp, sa)
 
 
 ##        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))

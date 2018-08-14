@@ -74,6 +74,10 @@ class market:
         if handles['data'].size > 0:
             for f in handles['func']:
                 f(handles['data'])
+        else: ##fail get kline
+            handles['thandle'] = threading.Timer(1, handles['tfunc'])
+            handles['thandle'].start()
+            return
         if handles['reg'] > 0:
             period = handles['tperiod'] - int(time.time())%handles['tperiod'] + 1 #local time currently, will use server time to improve
             handles['thandle'] = threading.Timer(period, handles['tfunc'])
