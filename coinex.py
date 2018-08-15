@@ -10,6 +10,7 @@ import sys
 import time
 import json
 from config import cfg
+from logger import log
 
 class coinex():
     def __init__(self):
@@ -22,7 +23,8 @@ class coinex():
             r = requests.request(method, r_url, params=payload, timeout=20)
             r.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(err)
+            log.err(err)
+            log.err(r.text)
         if r.status_code == 200:
             return r.json()
 
@@ -34,7 +36,7 @@ class coinex():
 
     def get_signed_md5(self, sig_str):
         hl = hashlib.md5()
-        #print(sig_str)
+        #log.dbg(sig_str)
         hl.update(sig_str.encode(encoding='utf-8'))
         signature = str.upper(hl.hexdigest())
         return signature
@@ -57,21 +59,21 @@ class coinex():
             if param:
                 r_url = r_url + '?' + param
 
-        print(r_url)
+        log.dbg(r_url)
         try:
             headers = cfg.get_cfg_header()
             headers['authorization'] = signature
-            #print(headers)
+            #log.dbg(headers)
         except:
-            print("Fail load section from config file")
+            log.err("Fail load section from config file")
             return
         
         try:
             r = requests.request(method, r_url, headers = headers, json=payload,timeout=20)
             r.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(err)
-            print(r.text)
+            log.err(err)
+            log.err(r.text)
         if r.status_code == 200:
             return r.json()
 
