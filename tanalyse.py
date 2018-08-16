@@ -5,6 +5,7 @@ from config import cfg
 from framework import fwk
 from market import mkt
 from logger import log
+from utils import isclose
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime,timedelta
@@ -14,23 +15,14 @@ import talib as ta
 import time
 
 
-def get_df_data(df):
+def _wait_df_data(df):
     while df.empty == True:
-        log.info("get_df_data waiting data!")
+        log.info("waiting data!")
         time.sleep(1)
-    return df
 
-def get_df_data_last(df):
-    while df.empty == True:
-        log.info("get_df_data_last waiting data!")
-        time.sleep(1)
-    return df.iloc[-1] #or irow(-1)?
-
-def get_df_index_timestamp(df, timestamp):
-    while df.empty == True:
-        log.info("get_df_data_timestamp waiting data!")
-        time.sleep(1)
-    if timestamp <= 0:
+def _get_df_index_timestamp(df, timestamp):
+    _wait_df_data(df)
+    if timestamp <= 0:     ######return last if timestamp <= 0
         return df.index.size - 1
     t = df['t']
     if timestamp < t[0]:
@@ -44,14 +36,25 @@ def get_df_index_timestamp(df, timestamp):
             break
     return idx
 
-def get_df_data_timestamp(df, timestamp):
-    return df.iloc[get_df_index_timestamp(timestamp)]
+def _get_df_data(df):
+    _wait_df_data(df)
+    return df
 
-def cut_df_data_timestamp(df, timestamp):
-    return df.iloc[0:get_df_index_timestamp(timestamp), :]
-    
+def _get_df_data_timestamp(df, timestamp):
+    _wait_df_data(df)
+    return df.iloc[0:_get_df_index_timestamp(df,timestamp), :]
+
+def _get_row_data_last(df):
+    _wait_df_data(df)
+    return df.iloc[-1] #or irow(-1)?
+
+def _get_row_data_timestamp(df, timestamp):
+    _wait_df_data(df)
+    return df.iloc[_get_df_index_timestamp(df,timestamp)]
+
 
 def _graphic(df, title):
+    _wait_df_data(df)
     fig = plt.figure(figsize=(12,8))
     ax1= fig.add_subplot(111)
     line_color = ('b','g','r','c','m','y','k')#,'w')
@@ -73,36 +76,19 @@ def _graphic(df, title):
     plt.legend()
     plt.show()
 
-def df_merge(*df):
+def _df_merge(*df):
     data = df[0]
     if len(df) > 1:
         for i in range(len(df)-1):
             data = pd.merge(data, df[i+1], how='left', on='t')
     return data
 
-def coordinate_repeat(x, y): ##polygonal line
+def _coordinate_repeat(x, y): ##polygonal line
     arr1 = list(np.array(x).repeat(2))
     arr2 = list(np.array(y).repeat(2))
     arr1.pop(0)
     arr2.pop(-1)
     return pd.Series(arr1), pd.Series(arr2)
-
-def analyse(self):
-    signal = []
-    dif, dea, macd = self.get_macd()
-    for i in range(dif.size):
-        val = dif[i] - dea[i]
-        if abs(val) < 0.001:
-            signal.append(0)
-        else:
-            if val > 0 and dea[i] > 0:
-                signal.append(0.5) #
-            elif val < 0 and dif[i] < 0:
-                signal.append(-0.5) #
-            else:
-                signal.append(0)
-    return signal        
-    sig = pd.Series(self.analyse(), name='sig')
 
 
 class  TechnicalAnalysis():
@@ -117,13 +103,16 @@ class  TechnicalAnalysis():
         mkt.register_handle('kline', self.handle_data)
 
     def get_data(self):
-        return get_df_data(self.data)
+        return _get_df_data(self.data)
 
     def get_data_timestamp(self, timestamp):
-        return get_df_data_timestamp(self.data, timestamp)
+        return _get_df_data_timestamp(self.data, timestamp)
 
-    def get_last_data(self):
-        return get_df_data_last(self.data)
+    def get_row_data_last(self):
+        return _get_row_data_last(self.data)
+
+    def get_row_data_timestamp(self,timestamp):
+        return _get_row_data_timestamp(self.data, timestamp)
 
     def handle_data(self, kl):
         if kl.empty == True:
@@ -178,16 +167,15 @@ class  TechnicalAnalysis():
             df['price'] = pd.Series(self.kl['c'] - self.kl['c'].mean()) #price fixed around 0 for trend analyse
         elif self.func == 'stoch':
             #df['price'] = pd.Series(self.kl['c']*(50/self.kl['c'].mean())) #price fixed around 50 for trend analyse
-            self.data['slowk'] = self.data['slowk']/10
-            self.data['slowd'] = self.data['slowd']/10
-            df['up'] = pd.Series([8]*self.kl['c'].size)
-            df['low'] = pd.Series([2]*self.kl['c'].size)
+            df['up'] = pd.Series([80]*self.kl['c'].size)
+            df['low'] = pd.Series([20]*self.kl['c'].size)
+            df['mid'] = pd.Series([50]*self.kl['c'].size)
             df['price'] = self.kl['c']
+            df['dif'] = (self.data['slowk'] - self.data['slowd']) + 50
         elif self.func == 'stochrsi':
-            self.data['fastk'] = self.data['fastk']/10
-            self.data['fastd'] = self.data['fastd']/10
-            df['up'] = pd.Series([8]*self.kl['c'].size)
-            df['low'] = pd.Series([2]*self.kl['c'].size)
+            df['up'] = pd.Series([80]*self.kl['c'].size)
+            df['low'] = pd.Series([20]*self.kl['c'].size)
+            df['mid'] = pd.Series([50]*self.kl['c'].size)
             df['price'] = self.kl['c']
         else:
             df['price'] = self.kl['c']
@@ -201,7 +189,7 @@ class Bbands(TechnicalAnalysis):
         super(Bbands, self).__init__('bbands', ['up','mid', 'low'], **params)
 
     def ta_form(self, timestamp, price):
-        row = self.get_data_timestamp(timestamp)
+        row = self.get_row_data_timestamp(timestamp)
         up,mid,low = row['up'],row['mid'],row['low']
         if isclose(up, low):
             self.form = 'up_low_close'
@@ -220,6 +208,7 @@ class Bbands(TechnicalAnalysis):
                 self.form = 'midup'
             elif price < mid:
                 self.form = 'midlow'
+        return self.form
 
     def ta_signal(self, timestamp, price):
         self.ta_form(timestamp, price)
@@ -228,7 +217,8 @@ class Bbands(TechnicalAnalysis):
         elif self.form == 'low' or self.form == 'lower':
             self.sig = 'buy'
         else:
-            self.sig = ''
+            self.sig = 'standby'
+        return self.sig
 
 class Macd(TechnicalAnalysis):
     def __init__(self, **params):
@@ -244,9 +234,41 @@ class Stoch(TechnicalAnalysis):
         super(Stoch, self).__init__('stoch', ['slowk', 'slowd'], **params)
 
     def ta_form(self, timestamp, price):
-        pass
+        row = self.get_row_data_timestamp(timestamp)
+        slowk,slowd = row['slowk'], row['slowd']
+        if slowd > 80:
+            self.form = 'overbuy'
+        elif slowd < 20:
+            self.form = 'oversell'
+        else:
+            self.form = None
+            df = self.get_data_timestamp(timestamp)
+            if df.index.size < 3:
+                return
+            dif = df['slowk'] - df['slowd']
+            if isclose(dif.iloc[-1], 0):
+                self.form = 'crossing' ### need forecast next form?
+            if dif.iloc[-1] > 0: #check if crossed up
+                if dif.iloc[-2] < 0 or isclose(dif.iloc[-2], 0):
+                    self.form = 'crossup'
+                else:
+                    self.form = 'up' ##continus up
+            elif dif.iloc[-1] < 0: #check if crossed down
+                if dif.iloc[-2] > 0 or isclose(dif.iloc[-2], 0):
+                    self.form = 'crossdown'
+                else:
+                    self.form = 'down'  ##continus down
+        return self.form
+        
     def ta_signal(self, timestamp, price):
-        pass
+        self.ta_form(timestamp, price)
+        if self.form == 'oversell' or self.form == 'crossup':
+            self.sig = 'buy'
+        elif self.form == 'overbuy' or self.form == 'crossdown':
+            self.sig = 'sell'
+        else:
+            self.sig = 'standby'
+        return self.sig
 
 class Stochrsi(TechnicalAnalysis):
     def __init__(self, **params):
@@ -291,7 +313,7 @@ if __name__ == '__main__':
     #kama.graphic()
     #bbands.graphic()
     #macd.graphic()
-    #stoch.graphic()
+    stoch.graphic()
     #stochrsi.graphic()
     
     #up,low = bbands.get_band_timestamp(1533968011)

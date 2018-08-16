@@ -8,7 +8,7 @@ from config import cfg
 from logger import log,trade_his
 from framework import fwk
 from market import mkt
-from tanalyse import bbands, sma_fast, sma_slow
+from tanalyse import bbands, stoch
 from utils import *
 import time
 #import threading
@@ -167,7 +167,8 @@ class app():
         except:
             log.err("exception sell market!")
 
-    def _trade(self, ttype, price, amount):
+    def _trade(self, type_key, price, amount):
+        ttype = self.trade_type[type_key]
         if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
             if ttype == 1:
                self.profit['buy'] -= price*amount 
@@ -185,43 +186,37 @@ class app():
             ##record the trade history
             #self.trade_history.append([time.time(), self.bSignal, price, amount])
             #log.info("trade history: %s"%(self.trade_history))
-            trade_his.info("%s"%([time.time(), self.bSignal, price, amount]))
+            trade_his.info("%s"%([time.time(), type_key, price, amount]))
 
         
-    def trade(self,  signal, bp, ba, sp, sa):
+    def trade(self, signal, bp, ba, sp, sa):
         price = amount = 0
-        trade_type = ''
-        if signal > 0:
-            price = sp
+        if signal == 'buy':
             if self.amount_hold['sell'] > 0:
-                trade_type = ''
+                type_key = 'margin_sell'
+                a = self.amount_hold['sell']
             else:
+                type_key = 'open_buy'
                 a = self.amount_hold['max'] - self.amount_hold['buy']
-                amount = min(a, sa)
-        elif signal < 0:
-            a = self.amount_hold['max'] - self.amount_hold['sell']
-            if a > 0:
-                price = bp
-                amount = min(a, ba)
-
-        elif self.bSignal == 'loss_buy' or self.bSignal == 'margin_buy':
-            a = self.amount_hold['buy']
-            if a > 0:
-                price = bp
-                amount = min(a, ba)
-
-        elif self.bSignal == 'loss_sell' or self.bSignal == 'margin_sell':
-            a = self.amount_hold['sell']
-            if a > 0:
-                price = sp
-                amount = min(a, sa)
+            amount = min(a, sa)
+            price = sp
+        elif signal == 'sell':
+            if self.amount_hold['buy'] > 0:
+                type_key = 'margin_buy'
+                a = self.amount_hold['buy']
+            else:
+                type_key = 'open_sell'
+                a = self.amount_hold['max'] - self.amount_hold['sell']
+            amount = min(a, ba)
+            price = bp
+        else: ## standby
+            return
 
         if price > 0 and amount > 0:
-            ttype = self.trade_type[self.bSignal]
-            log.info("going to trade! type:%s price:%f, amount:%f"%(self.bSignal, price, amount))
-            self._trade(ttype, price, amount) 
+            log.info("going to trade! type:%s price:%f, amount:%f"%(type_key, price, amount))
+            self._trade(type_key, price, amount) 
 
-    def process(self,   timestamp, depth):
+    def process(self, timestamp, depth):
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
@@ -238,7 +233,7 @@ class app():
         if gap > 0.2:
             log.dbg("gap=%f low volume, don't operate!"%(gap))
             return
-        signal = bbands_signal(timestamp, (bp+sp)/2)
+        signal = bbands.ta_signal(timestamp, (bp+sp)/2)
         self.trade(signal, bp, ba, sp, sa)
 
 
