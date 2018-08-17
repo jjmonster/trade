@@ -60,7 +60,7 @@ class config:
     def get_future_contract_type(self):
         return self.cfg['future_contract_type']
 
-    def get_future_or_spot(self):
+    def is_future(self):
         return True if cfg.get_cfg('future_or_spot') == 'future' else False
 
     def get_fee(self):

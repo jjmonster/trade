@@ -44,10 +44,11 @@ class app():
         self.exchange = 0
 
         #variables for trade record
+        self.balance = {cfg.get_coin1():1, cfg.get_coin2():0}
         self.trade_history = list() #time,type,price,amount
         self.trade_type = {'open_buy':1, 'open_sell':2, 'loss_buy':3, 'loss_sell':4, 'margin_buy':3,'margin_sell':4}
-        self.amount_hold = {'buy':0, 'sell':0, 'max':1000}
-        self.profit = {'buy':0, 'sell':0}
+        self.amount_hold = {'buy':0, 'sell':0, 'max':self.balance[cfg.get_coin1()]/2 if cfg.is_future() else 1000}
+        self.profit = {'buy':0, 'sell':0, 'price':0, 'amount':self.amount_hold}
 
         #variables for trade signal
         self.prev_sig = ''
@@ -225,8 +226,10 @@ class app():
         if self.depth_handle%60 == 0:
             ##log runtime profit
             runtime_profit = {}
-            runtime_profit['buy'] = self.profit['buy'] + self.amount_hold['buy']*bp
-            runtime_profit['sell'] = -(self.profit['sell'] + self.amount_hold['sell']*sp) ##sell ticket have inverted profit
+            runtime_profit['buy'] = round(self.profit['buy'] + self.amount_hold['buy']*bp, 2)
+            runtime_profit['sell'] = round(-(self.profit['sell'] + self.amount_hold['sell']*sp), 2) ##sell ticket have inverted profit
+            runtime_profit['price'] = round((bp+sp)/2,6)
+            runtime_profit['ahold'] = self.amount_hold
             log.dbg("runtime_profit:%s"%(runtime_profit))
 
         gap = gaps(bp, sp)
@@ -235,118 +238,6 @@ class app():
             return
         signal = bbands.ta_signal(timestamp, (bp+sp)/2)
         self.trade(signal, bp, ba, sp, sa)
-
-
-##        log.info("up:%f, low:%f ma5:%f, ma10:%f bp:%f sp:%f gap:%f"%(up,low,ma5,ma10,bp,sp,gap))
-##        log.info("sell offset:%.6f buy offset:%.6f"%(up-bp, sp-low))
-##        if isclose(up, bp):
-##            if self.amount_hold > 0:
-##                self.sell_market(cfg.get_pair(), bp, min(ba, self.amount_hold))
-##                log.info("sell_market! gap=%f buy=%f up=%f"%(gap, bp, up))
-##
-##        
-##        if isclose(sp, low):
-##            a = self.hold_max - self.amount_hold
-##            if a > 0:
-##                self.buy_market(cfg.get_pair(), sp, min(a, sa))
-##                log.info("buy_market! gap=%f sell=%f low=%f"%(gap, sp, low))
-##
-##        if len(self.trade_history) > 0:
-##            log.info("trade history: %s profit:%.6f"%(self.trade_history, self.profit))
-##        
-
-##        total_buy_funds = 0.0
-##        total_sell_funds = 0.0
-##        buy_max = 0.0
-##        buy_max_amount = 0.0
-##        sell_min = 9999999.0
-##        sell_min_amount = 0.0
-##        md = fwk.get_depth(cfg.get_pair())
-##        #print(md)
-##        buy_list = md['buy']
-##        sell_list = md['sell']
-##        for i in buy_list:
-##            price = float(i[0])
-##            amount = float(i[1])
-##            total_buy_funds += price * amount
-##            #buy_max = max(buy_max, price)
-##            if buy_max < price:
-##                buy_max = price
-##                buy_max_amount = amount
-##        for i in sell_list:
-##            price = float(i[0])
-##            amount = float(i[1])
-##            total_sell_funds += price * amount
-##            #sell_min = min(sell_min, price)
-##            if sell_min > price:
-##                sell_min = price
-##                sell_min_amount = amount
-##        gap = ((sell_min-buy_max)*100)/((sell_min+buy_max)/2)
-##        
-##        if gap < 0.0002:
-##            am = min(sell_min_amount, buy_max_amount)
-##            print("%s buy market: price:%f amount:%f"%(cfg.get_pair(), sell_min, am))
-##            #fwk.buy(pair=cfg.get_pair(), price=sell_min, amount=am, buy_type='market')
-##            print("%s sell market: price:%f amount:%f"%(cfg.get_pair(), buy_max, am))
-##            #fwk.sell(pair=cfg.get_pair(), price=buy_max, amount=am, sell_type='market')
-##        elif gap > 0.5:
-##            print("%s buy limit: price:%f amount:%f"%(cfg.get_pair(), buy_max+0.0001, 10))
-##            #fwk.buy(pair=cfg.get_pair(), price=(buy_max+0.0001), amount=1, buy_type='limit')
-##            print("%s sell limit: price:%f amount:%f"%(cfg.get_pair(), sell_min-0.0001, 10))
-##            #fwk.sell(pair=cfg.get_pair(), price=(sell_min-0.0001), amount=1, sell_type='limit')
-##        print("Total funds buy:%f sell:%f"%(total_buy_funds, total_sell_funds))
-##        print("price buy_max:%f sell_min:%f  gap:%f%%"%(buy_max, sell_min, gap))
-        
-##        curr_price = self.digits(fwk.get_last_price(cfg.get_pair()), self.cfg['price_decimal_limit'])
-##        print('symbol: %s current price:%f'%(cfg.get_pair(), curr_price))
-##        self.old_price.append(curr_price)
-##        
-##        balance = fwk.get_balance(cfg.get_pair())
-##        coin1_ba = balance[self.cfg['coin1']].balance
-##        coin2_ba = balance[cfg.get_coin2()].balance
-##        coin1_av = balance[cfg.get_coin1()].available
-##        coin2_av = balance[cfg.get_coin2()].available
-##
-##        print("%s origin balance = %f ........%s origin balance = %f"%(cfg.get_coin1(), self.orig_balance[cfg.get_coin1()].balance, cfg.get_coin2(), self.orig_balance[cfg.get_coin2()].balance))
-##        print("%s current balance = %f ........%s current balance = %f"%(cfg.get_coin1(), coin1_ba, cfg.get_coin2(), coin2_ba))
-##        print("%s current profit = %f ........%s current profit = %f"%(cfg.get_coin1(), self.orig_balance[cfg.get_coin1()].balance - coin1_ba, cfg.get_coin2(), self.orig_balance[cfg.get_coin2()].balance - coin2_ba))
-##        print("%s total poundage = %f ........%s total poundage = %f"%(cfg.get_coin1(), self.coin1_fee, cfg.get_coin2(), self.coin2_fee))
-##        order_list = self.fcoin.list_orders(symbol=cfg.get_pair(),states='submitted')['data']
-##        for i in  range(len(order_list)):
-##            print(order_list[i])
-##        
-##        if not order_list or len(order_list) < 2:
-##            if coin2_ba and abs(price/self.oldprice[len(self.oldprice)-2]-1)<0.02:
-##                if price*2>self.oldprice[len(self.oldprice)-2]+self.oldprice[len(self.oldprice)-3]:
-##                    amount = self.digits(usdt.available / price * 0.25, 2)
-##                    if amount > 5:
-##                        data = self.fcoin.buy(self.symbol, price, amount)
-##                        if data:
-##                            print('buy success',data)
-##                            self.ft_sxf += amount*0.001
-##                            self.order_id = data['data']
-##                            self.time_order = time.time()
-##                else:
-##                    if  float(ft.available) * 0.25 > 5:
-##                        amount = self.digits(ft.available * 0.25, 2)
-##                        data = self.fcoin.sell(self.symbol, price, amount)
-##                        if data:
-##                            self.usdt_sxf += amount*price*0.001
-##                            self.time_order = time.time()
-##                            self.order_id = data['data']
-##                            print('sell success')
-##            else:
-##                print('error')
-##        else:
-##            if len(order_list) >= 1:
-##                data=self.fcoin.cancel_order(order_list[len(order_list)-1]['id'])
-##                print(order_list[len(order_list)-1])
-##                if data:
-##                    if order_list[len(order_list)-1]['side'] == 'buy' and order_list[len(order_list)-1]['symbol'] == self.symbol:
-##                        self.ft_sxf -= float(order_list[len(order_list)-1]['amount'])*0.001
-##                    elif order_list[len(order_list)-1]['side'] == 'sell' and order_list[len(order_list)-1]['symbol'] == self.symbol:
-##                        self.usdt_sxf -= float(order_list[len(order_list)-1]['amount'])*float(order_list[len(order_list)-1]['price'])*0.001
-        
 
     def robot(self):
         while self.robot_running == 1:

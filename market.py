@@ -69,7 +69,7 @@ class market:
 
     def _update_kline(self):
         handles = self.data_handles['kline']
-        handles['data'] = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=100)
+        handles['data'] = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=500)
         #print("_update_kline", handles['data'])
         if handles['data'].size > 0:
             for f in handles['func']:

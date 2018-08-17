@@ -15,13 +15,7 @@ import talib as ta
 import time
 
 
-def _wait_df_data(df):
-    while df.empty == True:
-        log.info("waiting data!")
-        time.sleep(1)
-
 def _get_df_index_timestamp(df, timestamp):
-    _wait_df_data(df)
     if timestamp <= 0:     ######return last if timestamp <= 0
         return df.index.size - 1
     t = df['t']
@@ -36,27 +30,23 @@ def _get_df_index_timestamp(df, timestamp):
             break
     return idx
 
-def _get_df_data(df):
-    _wait_df_data(df)
-    return df
-
 def _get_df_data_timestamp(df, timestamp):
-    _wait_df_data(df)
     return df.iloc[0:_get_df_index_timestamp(df,timestamp), :]
 
 def _get_row_data_last(df):
-    _wait_df_data(df)
     return df.iloc[-1] #or irow(-1)?
 
 def _get_row_data_timestamp(df, timestamp):
-    _wait_df_data(df)
     return df.iloc[_get_df_index_timestamp(df,timestamp)]
 
 
 def _graphic(df, title):
-    _wait_df_data(df)
-    fig = plt.figure(figsize=(12,8))
-    ax1= fig.add_subplot(111)
+    if title != 'bbands':
+        fig, axes = plt.subplots(2,1,sharex=True, figsize=(12,8))
+        ax1,ax2= axes[0],axes[1]
+    else:
+        fig = plt.figure(figsize=(12,8))
+        ax1= fig.add_subplot(111)
     line_color = ('b','g','r','c','m','y','k')#,'w')
     line_maker = ('.',',','o') ###...
     line_style = ('-', '--', '-.', ':')
@@ -67,7 +57,13 @@ def _graphic(df, title):
             continue
         column = df[df.columns[i]]
         lcs = line_color[int(i%len(line_color))]+line_style[int(i/len(line_color))]
-        ax1.plot(t, column, lcs)
+        if title == 'bbands':
+            ax1.plot(t, column, lcs)
+        else:
+            if df.columns[i] == 'price':
+                ax1.plot(t, column, lcs)
+            else:
+                ax2.plot(t, column, lcs)
 
     ax1.set_title(title, fontproperties="SimHei")
     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
@@ -102,22 +98,40 @@ class  TechnicalAnalysis():
         self.form = ''
         mkt.register_handle('kline', self.handle_data)
 
+    def get_kl(self):
+        while self.kl.empty == True:
+            log.info("waiting data!")
+            time.sleep(1)
+        return self.kl
+
     def get_data(self):
-        return _get_df_data(self.data)
+        while self.data.empty == True:
+            log.info("waiting data!")
+            time.sleep(1)
+        return self.data
 
     def get_data_timestamp(self, timestamp):
+        while self.data.empty == True:
+            log.info("waiting data!")
+            time.sleep(1)
         return _get_df_data_timestamp(self.data, timestamp)
 
     def get_row_data_last(self):
+        while self.data.empty == True:
+            log.info("waiting data!")
+            time.sleep(1)
         return _get_row_data_last(self.data)
 
     def get_row_data_timestamp(self,timestamp):
+        while self.data.empty == True:
+            log.info("waiting data!")
+            time.sleep(1)
         return _get_row_data_timestamp(self.data, timestamp)
 
     def handle_data(self, kl):
         if kl.empty == True:
             return
-        self.kl = kl
+        self.kl = kl.copy()
         self.data['t'] = kl['t']
         if self.func == 'ma':
             #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
@@ -299,13 +313,13 @@ class Sma(TechnicalAnalysis):
     def ta_signal(self, timestamp, price):
         pass
 
-kama = Kama(timeperiod=10)
-sma_fast = Sma('fast', timeperiod=5)
-sma_slow = Sma('slow', timeperiod=10)
-bbands = Bbands(timeperiod = 10, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
+#kama = Kama(timeperiod=10)
+#sma_fast = Sma('fast', timeperiod=5)
+#sma_slow = Sma('slow', timeperiod=20)
+bbands = Bbands(timeperiod = 20, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
 macd = Macd(fastperiod = 12, slowperiod = 26, signalperiod = 9)
-stoch = Stoch(fastk_period=5, slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
-stochrsi = Stochrsi(timeperiod=14, fastk_period=5, fastd_period=3, fastd_matype=0)
+stoch = Stoch(fastk_period=9, slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
+#stochrsi = Stochrsi(timeperiod=14, fastk_period=5, fastd_period=3, fastd_matype=0)
 
 if __name__ == '__main__':
     #sma_fast.graphic()
