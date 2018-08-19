@@ -4,18 +4,18 @@
 #@Author  : jjia
 
 import sys
+from globalVars import *
 from config import cfg
-from logger import log,trade_his
+from logger import log,hist
 from framework import fwk
 from market import mkt
-from tanalyse import bbands, stoch
+from tanalyse import bbands, stoch, ta_register, ta_unregister
+from window import windows
 from utils import *
 import time
 #import threading
 
-
-
-class app():
+class cmdLine():
     def __init__(self):
         self.help_list = [
             (self.exit,"exit."),
@@ -32,6 +32,7 @@ class app():
             (self.start_robot,"start robot."),
             (self.stop_robot,"stop robot."),
             (self.test_back, "test back"),
+            (self.ta_win, "windows"),
         ]
 
         #variables for mine
@@ -45,7 +46,6 @@ class app():
 
         #variables for trade record
         self.balance = {cfg.get_coin1():1, cfg.get_coin2():0}
-        self.trade_history = list() #time,type,price,amount
         self.trade_type = {'open_buy':1, 'open_sell':2, 'loss_buy':3, 'loss_sell':4, 'margin_buy':3,'margin_sell':4}
         self.amount_hold = {'buy':0, 'sell':0, 'max':self.balance[cfg.get_coin1()]/2 if cfg.is_future() else 1000}
         self.profit = {'buy':0, 'sell':0, 'price':0, 'amount':self.amount_hold}
@@ -62,6 +62,7 @@ class app():
 
         #variables for test back
         self.testing = False
+
 
     def help_menu(self):
         print("\n usage: python -u %s"%__file__)
@@ -153,7 +154,7 @@ class app():
         try:
             #fwk.buy_market(pair, price, amount) #comment this for test
             self.amount_hold += amount
-            self.trade_history.append([price, amount])
+            trade_history.append([price, amount])
             self.profit += price*amount
         except:
             log.deg("exception buy market!")
@@ -163,12 +164,12 @@ class app():
             #fwk.sell_market(pair, price, amount) #comment this for test
             amount = -amount
             self.amount_hold += amount
-            self.trade_history.append([price, amount])
+            trade_history.append([price, amount])
             self.profit += price*amount
         except:
             log.err("exception sell market!")
 
-    def _trade(self, type_key, price, amount):
+    def _trade(self,timestamp,   type_key, price, amount):
         ttype = self.trade_type[type_key]
         if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
             if ttype == 1:
@@ -185,12 +186,15 @@ class app():
                 self.amount_hold['sell'] -= amount
 
             ##record the trade history
-            #self.trade_history.append([time.time(), self.bSignal, price, amount])
-            #log.info("trade history: %s"%(self.trade_history))
-            trade_his.info("%s"%([time.time(), type_key, price, amount]))
+            if len(trade_history) > 100:
+                trade_history.pop(0)
+            else:
+                trade_history.append([timestamp, type_key, price, amount])
+            #log.info("trade history: %s"%(trade_history))
+            hist.info("%s"%([timestamp, type_key, price, amount]))
 
         
-    def trade(self, signal, bp, ba, sp, sa):
+    def trade(self, timestamp, signal, bp, ba, sp, sa):
         price = amount = 0
         if signal == 'buy':
             if self.amount_hold['sell'] > 0:
@@ -215,7 +219,7 @@ class app():
 
         if price > 0 and amount > 0:
             log.info("going to trade! type:%s price:%f, amount:%f"%(type_key, price, amount))
-            self._trade(type_key, price, amount) 
+            self._trade(timestamp, type_key, price, amount) 
 
     def process(self, timestamp, depth):
         bp = depth['buy'][0][0]  #price buy
@@ -236,8 +240,10 @@ class app():
         if gap > 0.2:
             log.dbg("gap=%f low volume, don't operate!"%(gap))
             return
+
         signal = bbands.ta_signal(timestamp, (bp+sp)/2)
-        self.trade(signal, bp, ba, sp, sa)
+        #log.dbg("get signal! %s"%signal)
+        self.trade(timestamp, signal, bp, ba, sp, sa)
 
     def robot(self):
         while self.robot_running == 1:
@@ -249,6 +255,7 @@ class app():
             log.dbg("robot starting...")
             self.robot_running = 1            
             mkt.register_handle('depth', self.process)
+            ta_register()
             #thread = threading.Thread(target=self.robot)
             #thread.start()
         else:
@@ -258,43 +265,51 @@ class app():
         if self.robot_running == 1:
             log.dbg("robot stopping...")
             mkt.unregister_handle('depth', self.process)
+            ta_unregister()
             self.robot_running = 0
 
 
     def test_back(self):
         self.testing = True
-        kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=2000)
-        if(kl_1min.size <= 0):
-            return
-        p = kl_1min['c']
-        t = kl_1min['t']
-        for i in range(t.size):
-            dummy_depth = {'buy':[[p[i]*0.999, 1000]],'sell':[[p[i]*1.001, 1000]]}
-            self.process(t[i], dummy_depth)
+        mkt.testing = True
+        ta_register()
+        mkt.register_handle('depth', self.process)
+        mkt.test_back()
+        mkt.unregister_handle('depth', self.process)
+        ta_unregister()
+        mkt.testing = False
         self.testing = False
+
+    def ta_win(self):
+        ta_register()
+        win = windows()
+        win.layout()
+        mkt.register_handle('kline', win.handle_kline)
+        #mkt.register_handle('depth', win.handle_depth)
+
+        win.mainloop()
         
     def exit(self):
         if self.robot_running == 1:
             self.stop_robot()        
         mkt.stop()
         exit()
-    
-if __name__ == '__main__':
-    run = app()
 
+cl = cmdLine()
+if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'robot':
-        run.start_robot()
+        cl.start_robot()
         time.sleep(10000000)
-        run.stop_robot()
-        run.exit()
+        cl.stop_robot()
+        cl.exit()
 
     while True:
-        run.help_menu()
+        cl.help_menu()
         try:
             opt = int(input("your select:"))
         except:
             continue
 
-        if opt <= len(run.help_list):
-            run.help_list[opt][0]()
+        if opt <= len(cl.help_list):
+            cl.help_list[opt][0]()
 

@@ -88,119 +88,57 @@ def _coordinate_repeat(x, y): ##polygonal line
 
 
 class  TechnicalAnalysis():
-    def __init__(self, func, columns, **params):
+    def __init__(self):
         self.data = pd.DataFrame()
         self.kl = pd.DataFrame()
-        self.func = func
-        self.col = columns
-        self.params = params
         self.sig = ''
         self.form = ''
-        mkt.register_handle('kline', self.handle_data)
 
-    def get_kl(self):
-        while self.kl.empty == True:
+    def register_kl(self, ktype):
+        mkt.register_handle(ktype, self.handle_data)
+        
+    def unregister_kl(self, ktype):
+        mkt.unregister_handle(ktype, self.handle_data)
+
+    def _wait_data(self):
+        while self.kl.empty == True or self.data.empty == True:
             log.info("waiting data!")
             time.sleep(1)
+
+    def get_kl(self):
+        self._wait_data()
         return self.kl
 
     def get_data(self):
-        while self.data.empty == True:
-            log.info("waiting data!")
-            time.sleep(1)
+        self._wait_data()
         return self.data
 
     def get_data_timestamp(self, timestamp):
-        while self.data.empty == True:
-            log.info("waiting data!")
-            time.sleep(1)
+        self._wait_data()
         return _get_df_data_timestamp(self.data, timestamp)
 
     def get_row_data_last(self):
-        while self.data.empty == True:
-            log.info("waiting data!")
-            time.sleep(1)
+        self._wait_data()
         return _get_row_data_last(self.data)
 
     def get_row_data_timestamp(self,timestamp):
-        while self.data.empty == True:
-            log.info("waiting data!")
-            time.sleep(1)
+        self._wait_data()
         return _get_row_data_timestamp(self.data, timestamp)
 
-    def handle_data(self, kl):
-        if kl.empty == True:
-            return
-        self.kl = kl.copy()
-        self.data['t'] = kl['t']
-        if self.func == 'ma':
-            #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
-            self.data[self.col[0]] = ta.MA(kl['c'], **self.params)
-        elif self.func == 'wma':
-            self.data[self.col[0]] = ta.WMA(kl['c'], **self.params)
-        elif self.func == 'sma':
-            self.data[self.col[0]] = ta.SMA(kl['c'], **self.params)
-        elif self.func == 'ema':
-            self.data[self.col[0]] = ta.EMA(kl['c'], **self.params)
-        elif self.func == 'dema':
-            self.data[self.col[0]] = ta.DEMA(kl['c'], **self.params)
-        elif self.func == 'trima':
-            self.data[self.col[0]] = ta.TRIMA(kl['c'], **self.params)
-        elif self.func == 'kama':
-            self.data[self.col[0]] = ta.KAMA(kl['c'], **self.params)
-        elif self.func == 't3':
-            self.data[self.col[0]] = ta.KAMA(kl['c'], **self.params)##, vfactor = 0)
-        elif self.func == 'bbands':
-            up,mid,low = ta.BBANDS(kl['c'], **self.params)
-            self.data[self.col[0]] = up
-            self.data[self.col[1]] = mid
-            self.data[self.col[2]] = low
-        elif self.func == 'macd':
-            dif,dea,macd = ta.MACD(kl['c'], **self.params) #12 26 9 / 6 12 9
-            self.data[self.col[0]] = dif
-            self.data[self.col[1]] = dea
-            self.data[self.col[2]] = macd
-        elif self.func == 'stoch':
-            slowk,slowd = ta.STOCH(kl['h'],kl['l'],kl['c'], **self.params)
-            self.data[self.col[0]] = slowk
-            self.data[self.col[1]] = slowd
-        elif self.func == 'stochrsi':
-            fastk,fastd = ta.STOCHRSI(kl['c'], **self.params)
-            self.data[self.col[0]] = fastk
-            self.data[self.col[1]] = fastd
-        else:
-            log.err("haven't implement func:%s"%(self.func))
-
     def graphic(self):
-        while self.data.empty == True:
-            log.dbg("graphic waiting data!")
-            time.sleep(1)
-        df = pd.DataFrame()
-        if self.func == 'macd':
-            df['zero'] = pd.Series([0]*self.kl['c'].size)
-            df['price'] = pd.Series(self.kl['c'] - self.kl['c'].mean()) #price fixed around 0 for trend analyse
-        elif self.func == 'stoch':
-            #df['price'] = pd.Series(self.kl['c']*(50/self.kl['c'].mean())) #price fixed around 50 for trend analyse
-            df['up'] = pd.Series([80]*self.kl['c'].size)
-            df['low'] = pd.Series([20]*self.kl['c'].size)
-            df['mid'] = pd.Series([50]*self.kl['c'].size)
-            df['price'] = self.kl['c']
-            df['dif'] = (self.data['slowk'] - self.data['slowd']) + 50
-        elif self.func == 'stochrsi':
-            df['up'] = pd.Series([80]*self.kl['c'].size)
-            df['low'] = pd.Series([20]*self.kl['c'].size)
-            df['mid'] = pd.Series([50]*self.kl['c'].size)
-            df['price'] = self.kl['c']
-        else:
-            df['price'] = self.kl['c']
-        df = pd.concat([df, self.data], axis=1)
-        #print(df)
-        _graphic(df, self.func)
+        self._wait_data()
+        _graphic(self.data)
 
 
 class Bbands(TechnicalAnalysis):
     def __init__(self, **params):
-        super(Bbands, self).__init__('bbands', ['up','mid', 'low'], **params)
+        super(Bbands, self).__init__()
+        self.params = dict({'timeperiod':20, 'nbdevup':1.5, 'nbdevdn':1.5, 'matype':0}, **params)
+
+    def handle_data(self, kl):
+        self.kl = kl #.copy()
+        self.data['t'] = kl['t']
+        self.data['up'],self.data['mid'],self.data['low'] = ta.BBANDS(kl['c'], **self.params)
 
     def ta_form(self, timestamp, price):
         row = self.get_row_data_timestamp(timestamp)
@@ -236,7 +174,15 @@ class Bbands(TechnicalAnalysis):
 
 class Macd(TechnicalAnalysis):
     def __init__(self, **params):
-        super(Macd, self).__init__('macd', ['dif','dea', 'macd'], **params)
+        super(Macd, self).__init__()
+        self.params = dict({'fastperiod':12, 'slowperiod':26, 'signalperiod':9}, **params)
+
+    def handle_data(self, kl):
+        self.kl = kl #.copy()
+        self.data['t'] = kl['t']
+        self.data['dif'],self.data['dea'],self.data['macd'] = ta.MACD(kl['c'], **self.params) #12 26 9 / 6 12 9
+        self.data['zero'] = pd.Series([0]*kl['c'].size)
+        #self.data['price'] = pd.Series(kl['c'] - kl['c'].mean()) #price fixed around 0 for trend analyse
 
     def ta_form(self, timestamp, price):
         pass
@@ -245,7 +191,17 @@ class Macd(TechnicalAnalysis):
 
 class Stoch(TechnicalAnalysis):
     def __init__(self, **params):
-        super(Stoch, self).__init__('stoch', ['slowk', 'slowd'], **params)
+        super(Stoch, self).__init__()
+        self.params = dict({'fastk_period':9, 'slowk_period':3, 'slowk_matype':0, 'slowd_period':3, 'slowd_matype':0}, **params)
+
+    def handle_data(self, kl):
+        self.kl = kl #.copy()
+        self.data['t'] = kl['t']
+        self.data['slowk'],self.data['slowd'] = ta.STOCH(kl['h'],kl['l'],kl['c'], **self.params)
+        self.data['up'] = pd.Series([80]*kl['c'].size)
+        self.data['low'] = pd.Series([20]*kl['c'].size)
+        self.data['mid'] = pd.Series([50]*kl['c'].size)
+        self.data['dif'] = (self.data['slowk'] - self.data['slowd']) + 50
 
     def ta_form(self, timestamp, price):
         row = self.get_row_data_timestamp(timestamp)
@@ -286,42 +242,73 @@ class Stoch(TechnicalAnalysis):
 
 class Stochrsi(TechnicalAnalysis):
     def __init__(self, **params):
-        super(Stochrsi, self).__init__('stochrsi', ['fastk', 'fastd'], **params)
+        super(Stochrsi, self).__init__()
+        self.params = dict({'timeperiod':14, 'fastk_period':5, 'fastd_period':3, 'fastd_matype':0}, **params)
+
+    def handle_data(self, kl):
+        self.kl = kl #.copy()
+        self.data['t'] = kl['t']
+        self.data['fastk'],self.data['fastd'] = ta.STOCHRSI(kl['c'], **self.params)
+        self.data['up'] = pd.Series([80]*kl['c'].size)
+        self.data['low'] = pd.Series([20]*kl['c'].size)
+        self.data['mid'] = pd.Series([50]*kl['c'].size)
 
     def ta_form(self, timestamp, price):
         pass
     def ta_signal(self, timestamp, price):
         pass
 
+class Ma(TechnicalAnalysis):
+    def __init__(self, indicator,   col_name, **params):
+        super(Ma, self).__init__()
+        self.indicator = indicator
 
-class Kama(TechnicalAnalysis):
-    def __init__(self, **params):
-        super(Kama, self).__init__('kama', ['kama'], **params)
+    def handle_data(self, kl):
+        self.kl = kl #.copy()
+        self.data['t'] = kl['t']
+        if self.indicator == 'ma':
+            #MA_Type: 0=SMA, 1=EMA, 2=WMA, 3=DEMA, 4=TEMA, 5=TRIMA, 6=KAMA, 7=MAMA, 8=T3 (Default=SMA)
+            self.data[col_name] = ta.MA(kl['c'], **self.params)
+        elif self.indicator == 'wma':
+            self.data[col_name] = ta.WMA(kl['c'], **self.params)
+        elif self.indicator == 'sma':
+            self.data[col_name] = ta.SMA(kl['c'], **self.params)
+        elif self.indicator == 'ema':
+            self.data[col_name] = ta.EMA(kl['c'], **self.params)
+        elif self.indicator == 'dema':
+            self.data[col_name] = ta.DEMA(kl['c'], **self.params)
+        elif self.indicator == 'trima':
+            self.data[col_name] = ta.TRIMA(kl['c'], **self.params)
+        elif self.indicator == 'kama':
+            self.data[col_name] = ta.KAMA(kl['c'], **self.params)
+        elif self.indicator == 't3':
+            self.data[col_name] = ta.T3(kl['c'], **self.params)##, vfactor = 0)
 
     def ta_form(self, timestamp, price):
         pass
     def ta_signal(self, timestamp, price):
         pass
 
+bbands = Bbands()
+macd = Macd()
+stoch = Stoch()
+#stochrsi = Stochrsi()
+#kama = Ma('kama', 'kama', timeperiod=10)
+#sma_fast = Ma('sma', 'fast', timeperiod=5)
+#sma_slow = Ma('sma', 'slow', timeperiod=20)
 
-class Sma(TechnicalAnalysis):
-    def __init__(self,   col_name, **params):
-        super(Sma, self).__init__('sma', [col_name], **params)
+def ta_register():
+    bbands.register_kl("kline")
+    macd.register_kl("kline")
+    stoch.register_kl("kline")
 
-    def ta_form(self, timestamp, price):
-        pass
-    def ta_signal(self, timestamp, price):
-        pass
-
-#kama = Kama(timeperiod=10)
-#sma_fast = Sma('fast', timeperiod=5)
-#sma_slow = Sma('slow', timeperiod=20)
-bbands = Bbands(timeperiod = 20, nbdevup = 1.5, nbdevdn = 1.5, matype = 0)
-macd = Macd(fastperiod = 12, slowperiod = 26, signalperiod = 9)
-stoch = Stoch(fastk_period=9, slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
-#stochrsi = Stochrsi(timeperiod=14, fastk_period=5, fastd_period=3, fastd_matype=0)
+def ta_unregister():
+    bbands.unregister_kl("kline")
+    macd.unregister_kl("kline")
+    stoch.unregister_kl("kline")
 
 if __name__ == '__main__':
+    ta_register()
     #sma_fast.graphic()
     #sma_slow.graphic()
     #kama.graphic()
@@ -335,6 +322,6 @@ if __name__ == '__main__':
 
     #df = df_merge(sma_fast.get_data(), sma_slow.get_data(), bbands.get_data(), macd.get_data()) ##.rename(columns={'real':'fast'})
     #_graphic(df, 'mixed')
-    mkt.stop()
+    ta_unregister()
 
     

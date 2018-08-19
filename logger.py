@@ -43,7 +43,7 @@ class Logger:
         self.logger.critical(message)
 
 log = Logger("log.log")
-trade_his = Logger("trade_his.log")
+hist = Logger("hist.log")
 
 if __name__ =='__main__':
     #log = Logger()
