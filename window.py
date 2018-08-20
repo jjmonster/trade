@@ -8,20 +8,16 @@ from collections import OrderedDict
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,NavigationToolbar2TkAgg
+#from matplotlib.figure import Figure
 
 from mpl_finance import candlestick_ochl,candlestick2_ochl
-
-
 from datetime import datetime,timedelta
 
 from market import mkt
 from tanalyse import bbands, stoch, ta_register, ta_unregister
-from globalVars import *
+from robot import rbt
 
-#from graphic import graphic
 import numpy as np
 import pandas as pd
 
@@ -74,6 +70,10 @@ class windows:
 
 
     def mainloop(self):
+        ta_register()
+        self.layout()
+        mkt.register_handle('kline', win.handle_kline)
+        #mkt.register_handle('depth', win.handle_depth)
         self.win.mainloop()
 
     def layout(self):
@@ -110,6 +110,8 @@ class windows:
         self.ta_canva =FigureCanvasTkAgg(fig, master=parent)
         self.ta_canva.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
         self.ta_canva._tkcanvas.pack(side=TOP, fill=BOTH, expand=1)
+        toolbar = NavigationToolbar2TkAgg(self.ta_canva, parent)
+        toolbar.update()
         #btn = ttk.Button(parent,text='test',command=self.btn_click)
         #btn.pack()
 
@@ -130,10 +132,9 @@ class windows:
         pass
 
     def handle_kline(self, kl):
-        print("win handle kline")
         ta_graphic('price', self.ta_axes[1], kl.loc[:,['t','c']])
         ta_graphic('bbands', self.ta_axes[1], bbands.get_data())
-        trade_graphic(self.ta_axes[1], trade_history)
+        trade_graphic(self.ta_axes[1], rbt.trade_history)
         self.ta_canva.draw()
 
     def btn_click(self):
@@ -164,9 +165,9 @@ class windows:
         self.win.quit()
         self.win.destroy()
 
+win = windows()
 if __name__ == '__main__':
     ta_register()
-    win = windows()
     mkt.register_handle('kline', win.handle_kline)
 #    mkt.register_handle('depth', win.handle_depth)
     win.layout()

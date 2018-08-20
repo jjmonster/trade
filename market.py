@@ -14,7 +14,6 @@ import time
 
 class market:
     def __init__(self):
-        self.testing = False
         self.days = 10
         self.data_handles = {
             'price':{'thandle':None, 'tfunc':self._update_price, 'tperiod':1, 'data':0, 'func':[], 'reg':0},
@@ -41,7 +40,7 @@ class market:
         if handles['data'] != None and len(handles['data']) > 0:
             for f in handles['func']:
                 f(handles['data'])
-        if self.testing == False and handles['reg'] > 0:
+        if handles['reg'] > 0:
             handles['thandle'] = threading.Timer(handles['tperiod'], handles['tfunc'])
             handles['thandle'].start()
 
@@ -52,12 +51,11 @@ class market:
         if handles['data'] != None and len(handles['data']) > 0:
             for f in handles['func']:
                 f(handles['data'])
-        if self.testing == False and handles['reg'] > 0:
+        if handles['reg'] > 0:
             handles['thandle'] = threading.Timer(handles['tperiod'], handles['tfunc'])
             handles['thandle'].start()
 
     def _update_depth(self):
-        print("update depth")
         handles = self.data_handles['depth']
         #t1 = time.time()
         handles['data'] = fwk.get_depth(cfg.get_pair())
@@ -66,7 +64,7 @@ class market:
         if handles['data'] != None and len(handles['data']) > 0:
             for f in handles['func']:
                 f(t, handles['data'])
-        if self.testing == False and handles['reg'] > 0:
+        if handles['reg'] > 0:
             handles['thandle'] = threading.Timer(handles['tperiod'], handles['tfunc'])
             handles['thandle'].start()
 
@@ -77,11 +75,11 @@ class market:
         if handles['data'].size > 0:
             for f in handles['func']:
                 f(handles['data'])
-        elif self.testing == False: ##fail get kline
+        else: ##fail get kline
             handles['thandle'] = threading.Timer(1, handles['tfunc'])
             handles['thandle'].start()
             return
-        if self.testing == False and handles['reg'] > 0:
+        if handles['reg'] > 0:
             period = handles['tperiod'] - int(time.time())%handles['tperiod'] + 1 #local time currently, will use server time to improve
             handles['thandle'] = threading.Timer(period, handles['tfunc'])
             handles['thandle'].start()
@@ -95,7 +93,7 @@ class market:
         handles['func'].append(func)
         handles['reg'] += 1
         #print("register_handle", handles)
-        if self.testing == False and handles['reg'] == 1:
+        if handles['reg'] == 1:
             handles['thandle'] = threading.Timer(1, handles['tfunc']) #first start timer 1s period
             handles['thandle'].start()
 
@@ -105,7 +103,7 @@ class market:
         if func in handles['func']:
             handles['func'].remove(func)
             handles['reg'] -= 1
-            if self.testing == False and handles['reg'] == 0:
+            if handles['reg'] == 0:
                 handles['thandle'].cancel()
 
     def stop(self):
@@ -114,25 +112,6 @@ class market:
                 v['thandle'].cancel()
                 v['func'].clear()
                 v['reg'] = 0
-
-    def test_back(self):
-        kl_1hour = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=min(self.days*24, 2000))
-        handles = self.data_handles['kline']
-        if kl_1hour.size > 0:
-            for f in handles['func']:
-                f(kl_1hour)
-
-        kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=min(self.days*24*60, 2000))
-        if(kl_1min.size <= 0):
-            return
-        p = kl_1min['c']
-        t = kl_1min['t']
-        for i in range(t.size):
-            dummy_depth = {'buy':[[p[i]*0.999, 1000]],'sell':[[p[i]*1.001, 1000]]}
-            handles = self.data_handles['depth']
-            for f in handles['func']:
-                f(t[i], dummy_depth)
-        
 
 
 mkt = market()

@@ -3,17 +3,12 @@
 #@TIME    : 2018/6/25 22:26
 #@Author  : jjia
 
-import sys
-from globalVars import *
 from config import cfg
-from logger import log,hist
+from logger import log
 from framework import fwk
 from market import mkt
-from tanalyse import bbands, stoch, ta_register, ta_unregister
-from window import windows
-from utils import *
-import time
-#import threading
+from robot import rbt
+from window import win
 
 class cmdLine():
     def __init__(self):
@@ -29,40 +24,11 @@ class cmdLine():
             (self.list_order,"list all order."),
             (self.cancel_order,"cancel order with pair"),
             (self.cancel_order_all,"cancel all order."),
-            (self.start_robot,"start robot."),
-            (self.stop_robot,"stop robot."),
-            (self.test_back, "test back"),
-            (self.ta_win, "windows"),
+            (rbt.start,"start robot."),
+            (rbt.stop,"stop robot."),
+            (rbt.test_back, "test back"),
+            (win.mainloop, "windows"),
         ]
-
-        #variables for mine
-#        self.orig_balance=fwk.get_balance_all()
-        self.coin1_fee=0.0 
-        self.coin2_fee=0.0
-#        self.order_id = []
-#        self.old_price = []
-        self.deficit_allowed = cfg.get_fee() * cfg.get_trans_fee() 
-        self.exchange = 0
-
-        #variables for trade record
-        self.balance = {cfg.get_coin1():1, cfg.get_coin2():0}
-        self.trade_type = {'open_buy':1, 'open_sell':2, 'loss_buy':3, 'loss_sell':4, 'margin_buy':3,'margin_sell':4}
-        self.amount_hold = {'buy':0, 'sell':0, 'max':self.balance[cfg.get_coin1()]/2 if cfg.is_future() else 1000}
-        self.profit = {'buy':0, 'sell':0, 'price':0, 'amount':self.amount_hold}
-
-        #variables for trade signal
-        self.prev_sig = ''
-        self.bSignal = ''
-
-        #variables for log print
-        self.depth_handle = 0
-
-        #variables for automatic 
-        self.robot_running = 0
-
-        #variables for test back
-        self.testing = False
-
 
     def help_menu(self):
         print("\n usage: python -u %s"%__file__)
@@ -152,157 +118,21 @@ class cmdLine():
 
     def buy_market(self, pair, price, amount):
         try:
-            #fwk.buy_market(pair, price, amount) #comment this for test
-            self.amount_hold += amount
-            trade_history.append([price, amount])
-            self.profit += price*amount
+            fwk.buy_market(pair, price, amount) #comment this for test
         except:
             log.deg("exception buy market!")
 
     def sell_market(self, pair, price, amount):
         try:
-            #fwk.sell_market(pair, price, amount) #comment this for test
-            amount = -amount
-            self.amount_hold += amount
-            trade_history.append([price, amount])
-            self.profit += price*amount
+            fwk.sell_market(pair, price, amount) #comment this for test
         except:
             log.err("exception sell market!")
 
-    def _trade(self,timestamp,   type_key, price, amount):
-        ttype = self.trade_type[type_key]
-        if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
-            if ttype == 1:
-               self.profit['buy'] -= price*amount 
-               self.amount_hold['buy'] += amount
-            elif ttype == 2:
-                self.profit['sell'] -= price*amount
-                self.amount_hold['sell'] += amount
-            elif ttype == 3:
-                self.profit['buy'] += price*amount
-                self.amount_hold['buy'] -= amount
-            elif ttype == 4:
-                self.profit['sell'] += price*amount
-                self.amount_hold['sell'] -= amount
-
-            ##record the trade history
-            if len(trade_history) > 100:
-                trade_history.pop(0)
-            else:
-                trade_history.append([timestamp, type_key, price, amount])
-            #log.info("trade history: %s"%(trade_history))
-            hist.info("%s"%([timestamp, type_key, price, amount]))
-
-        
-    def trade(self, timestamp, signal, bp, ba, sp, sa):
-        price = amount = 0
-        if signal == 'buy':
-            if self.amount_hold['sell'] > 0:
-                type_key = 'margin_sell'
-                a = self.amount_hold['sell']
-            else:
-                type_key = 'open_buy'
-                a = self.amount_hold['max'] - self.amount_hold['buy']
-            amount = min(a, sa)
-            price = sp
-        elif signal == 'sell':
-            if self.amount_hold['buy'] > 0:
-                type_key = 'margin_buy'
-                a = self.amount_hold['buy']
-            else:
-                type_key = 'open_sell'
-                a = self.amount_hold['max'] - self.amount_hold['sell']
-            amount = min(a, ba)
-            price = bp
-        else: ## standby
-            return
-
-        if price > 0 and amount > 0:
-            log.info("going to trade! type:%s price:%f, amount:%f"%(type_key, price, amount))
-            self._trade(timestamp, type_key, price, amount) 
-
-    def process(self, timestamp, depth):
-        bp = depth['buy'][0][0]  #price buy
-        ba = depth['buy'][0][1]  #amount buy
-        sp = depth['sell'][0][0] #price sell
-        sa = depth['sell'][0][1] #amount sell
-        self.depth_handle += 1
-        if self.depth_handle%60 == 0:
-            ##log runtime profit
-            runtime_profit = {}
-            runtime_profit['buy'] = round(self.profit['buy'] + self.amount_hold['buy']*bp, 2)
-            runtime_profit['sell'] = round(-(self.profit['sell'] + self.amount_hold['sell']*sp), 2) ##sell ticket have inverted profit
-            runtime_profit['price'] = round((bp+sp)/2,6)
-            runtime_profit['ahold'] = self.amount_hold
-            log.dbg("runtime_profit:%s"%(runtime_profit))
-
-        gap = gaps(bp, sp)
-        if gap > 0.2:
-            log.dbg("gap=%f low volume, don't operate!"%(gap))
-            return
-
-        signal = bbands.ta_signal(timestamp, (bp+sp)/2)
-        #log.dbg("get signal! %s"%signal)
-        self.trade(timestamp, signal, bp, ba, sp, sa)
-
-    def robot(self):
-        while self.robot_running == 1:
-            self.process()
-            time.sleep(3)
-
-    def start_robot(self):
-        if self.robot_running == 0:
-            log.dbg("robot starting...")
-            self.robot_running = 1            
-            mkt.register_handle('depth', self.process)
-            ta_register()
-            #thread = threading.Thread(target=self.robot)
-            #thread.start()
-        else:
-            log.dbg("robot already running!")
-
-    def stop_robot(self):
-        if self.robot_running == 1:
-            log.dbg("robot stopping...")
-            mkt.unregister_handle('depth', self.process)
-            ta_unregister()
-            self.robot_running = 0
-
-
-    def test_back(self):
-        self.testing = True
-        mkt.testing = True
-        ta_register()
-        mkt.register_handle('depth', self.process)
-        mkt.test_back()
-        mkt.unregister_handle('depth', self.process)
-        ta_unregister()
-        mkt.testing = False
-        self.testing = False
-
-    def ta_win(self):
-        ta_register()
-        win = windows()
-        win.layout()
-        mkt.register_handle('kline', win.handle_kline)
-        #mkt.register_handle('depth', win.handle_depth)
-
-        win.mainloop()
-        
     def exit(self):
-        if self.robot_running == 1:
-            self.stop_robot()        
-        mkt.stop()
         exit()
 
 cl = cmdLine()
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'robot':
-        cl.start_robot()
-        time.sleep(10000000)
-        cl.stop_robot()
-        cl.exit()
-
     while True:
         cl.help_menu()
         try:
