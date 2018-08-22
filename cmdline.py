@@ -12,6 +12,8 @@ from window import win
 
 class cmdLine():
     def __init__(self):
+        self.rbt = Robot()
+        self.win = windows()
         self.help_list = [
             (self.exit,"exit."),
             (cfg.print_cfg,"get config."),
@@ -24,10 +26,10 @@ class cmdLine():
             (self.list_order,"list all order."),
             (self.cancel_order,"cancel order with pair"),
             (self.cancel_order_all,"cancel all order."),
-            (rbt.start,"start robot."),
-            (rbt.stop,"stop robot."),
-            (rbt.test_back, "test back"),
-            (win.mainloop, "windows"),
+            (self.rbt.start,"start robot."),
+            (self.rbt.stop,"stop robot."),
+            (self.rbt.test_back, "test back"),
+            (self.win.mainloop, "windows"),
         ]
 
     def help_menu(self):
@@ -129,8 +131,8 @@ class cmdLine():
             log.err("exception sell market!")
 
     def exit(self):
-        if rbt.running == 1:
-            rbt.stop()
+        if self.rbt.running == 1:
+            self.rbt.stop()
         exit()
 
 cl = cmdLine()

@@ -63,6 +63,9 @@ class config:
     def is_future(self):
         return True if cfg.get_cfg('future_or_spot') == 'future' else False
 
+    def get_indicator(self):
+        return self.cfg['indicator']
+
     def get_fee(self):
         return self.cfg['fee_percentage']
 

@@ -172,8 +172,8 @@ class Robot():
         self.testing = False
                 
 
-rbt = Robot()
 if __name__ == '__main__':
+    rbt = Robot()
     rbt.start()
     time.sleep(10000000)
     rbt.stop()
