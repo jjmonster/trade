@@ -14,16 +14,15 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,NavigationToolba
 
 from mpl_finance import candlestick_ochl,candlestick2_ochl
 from datetime import datetime,timedelta
-
-from market import mkt
-from tanalyse import bbands, stoch, ta_register, ta_unregister
-from robot import rbt
-
 import numpy as np
 import pandas as pd
+from market import mkt
+from tanalyse import Bbands,Macd,Stoch
+from robot import rbt
 
 
-def ta_graphic(indicator, ax, df):
+def ta_graphic(indicator, ax, *params):
+    df = params[0]
     if indicator == 'kline':
         candlestick_ochl(ax, np.array(df))#, width=0.4, colorup='#77d879', colordown='#db3f3f')
     else:
@@ -41,21 +40,24 @@ def ta_graphic(indicator, ax, df):
     ax.set_title(indicator, fontproperties="SimHei")
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H')) #%H:%M:%S'))
     ax.xaxis.set_major_locator(mdates.DayLocator()) #HourLocator())
+    ax.legend()
     plt.xticks(rotation=45)
-    plt.legend()
     #plt.show()
 
-def trade_graphic(ax, hist):
-    if len(hist) > 0:
-        for i in range(len(hist)):
-            time = datetime.fromtimestamp(hist[i][0])
-            type = hist[i][1]
-            price = hist[i][2]
-            if type == 'open_buy' or type == 'margin_sell' or type == 'loss_sell':
-                cms = 'ro'
-            elif type == 'open_sell' or type == 'margin_buy' or type == 'loss_buy':
-                cms = 'go'
-            ax.plot([time], [price], cms)
+    if len(params) > 1:
+        hist = params[1]
+        if len(hist) > 0:
+            for i in range(len(hist)):
+                time = datetime.fromtimestamp(hist[i][0])
+                type = hist[i][1]
+                price = hist[i][2]
+                if type == 'open_buy':
+                    cms = 'ro'
+                elif type == 'open_sell':
+                    cms = 'bo'
+                elif type == 'margin_sell' or type == 'loss_sell' or type == 'margin_buy' or type == 'loss_buy':
+                    cms = 'go'
+                ax.plot([time], [price], cms)
 
 class windows:
     def __init__(self):
@@ -70,10 +72,7 @@ class windows:
 
 
     def mainloop(self):
-        ta_register()
         self.layout()
-        mkt.register_handle('kline', win.handle_kline)
-        #mkt.register_handle('depth', win.handle_depth)
         self.win.mainloop()
 
     def layout(self):
@@ -105,10 +104,13 @@ class windows:
 
     def indicator_select(self, event):
         self.indicator = event.widget.get()
+        rbt.indicator = self.indicator
         if self.indicator == 'bbands':
             kl = self.bbands.get_kl()
         elif self.indicator == 'macd':
             kl = self.macd.get_kl()
+        elif self.indicator == 'stoch':
+            kl = self.stoch.get_kl()
         self.handle_kline(kl)
 
     def plat_select(self, event):
@@ -143,17 +145,26 @@ class windows:
         return
 
     def tab_analysis_layout(self, parent):
-        fig,self.ta_axes = plt.subplots(2,1,sharex=True) #, figsize=(12,8))
+        fig,self.ta_axes = plt.subplots(2,1,sharex=True)
         self.ta_canva =FigureCanvasTkAgg(fig, master=parent)
         self.ta_canva.get_tk_widget().pack(fill=tk.BOTH, expand=1)
         self.ta_canva._tkcanvas.pack(fill=tk.BOTH, expand=1)
         toolbar = NavigationToolbar2TkAgg(self.ta_canva, parent)
         toolbar.update()
-        #btn = ttk.Button(parent,text='test',command=self.btn_click)
-        #btn.pack()
-
+        ###data graphic
+        self.indicator = 'bbands'
+        self.bbands = Bbands()
+        self.macd = Macd()
+        self.stoch = Stoch()
+        mkt.register_handle('kline', self.bbands.handle_data)
+        mkt.register_handle('kline', self.macd.handle_data)
+        mkt.register_handle('kline', self.stoch.handle_data)
+        #mkt.register_handle('depth', win.handle_depth)
+        mkt.register_handle('kline', self.handle_kline)
 
     def tab_robot_layout(self, parent):
+        #btn = ttk.Button(parent,text='test',command=self.btn_click)
+        #btn.pack()
         return
         
     def tab_debug_layout(self, parent):
@@ -169,14 +180,23 @@ class windows:
         pass
 
     def handle_kline(self, kl):
-        ta_graphic('price', self.ta_axes[1], kl.loc[:,['t','c']])
-        ta_graphic('bbands', self.ta_axes[1], bbands.get_data())
-        trade_graphic(self.ta_axes[1], rbt.trade_history)
+        self.ta_axes[0].cla()
+        self.ta_axes[1].cla()
+        if self.indicator == 'bbands':
+            ta_graphic('price', self.ta_axes[1], kl.loc[:,['t','c']], rbt.trade_history)
+            ta_graphic('bbands', self.ta_axes[1], self.bbands.get_data())
+        elif self.indicator == 'macd':
+            ta_graphic('price', self.ta_axes[0], kl.loc[:,['t','c']], rbt.trade_history)
+            ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
+        elif self.indicator == 'stoch':
+            ta_graphic('price', self.ta_axes[0], kl.loc[:,['t','c']], rbt.trade_history)
+            ta_graphic('stoch', self.ta_axes[1], self.stoch.get_data())
+        else:
+            pass
         self.ta_canva.draw()
 
     def btn_click(self):
-        #self.ta_axes[0].cla()
-        self.ta_canva.draw()
+        pass
         
     def plat_select_widget(self, parent):
         self.plat=("okex","coinex","fcoin")
@@ -196,7 +216,9 @@ class windows:
 
 
     def exit(self):
-        ta_unregister()
+        mkt.unregister_handle('kline', self.bbands.handle_data)
+        mkt.unregister_handle('kline', self.macd.handle_data)
+        mkt.unregister_handle('kline', self.stoch.handle_data)
         mkt.unregister_handle('kline', self.handle_kline)
 #        mkt.unregister_handle('depth', self.handle_depth)
         self.win.quit()
@@ -204,9 +226,5 @@ class windows:
 
 win = windows()
 if __name__ == '__main__':
-    ta_register()
-    mkt.register_handle('kline', win.handle_kline)
-#    mkt.register_handle('depth', win.handle_depth)
-    win.layout()
     win.mainloop()
 

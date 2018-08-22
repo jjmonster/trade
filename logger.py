@@ -5,7 +5,7 @@ import logging,os
 
 class Logger:
     def __init__(self, pathfile):
-        print("logger init instance...")
+        #print("logger init instance...")
         file = pathfile
         clevel = logging.DEBUG
         Flevel = logging.INFO

@@ -129,6 +129,8 @@ class cmdLine():
             log.err("exception sell market!")
 
     def exit(self):
+        if rbt.running == 1:
+            rbt.stop()
         exit()
 
 cl = cmdLine()

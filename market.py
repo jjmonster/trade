@@ -6,11 +6,8 @@ from config import cfg
 from framework import fwk
 from logger import log
 import pandas as pd
-
 import threading
 import time
-
-
 
 class market:
     def __init__(self):
@@ -90,6 +87,10 @@ class market:
         if func in handles['func']:
             log.war(" %s already handled!"%(func))
             return
+        #as kline have long period, the newly obj callback func can't been called immediately.
+        #so call it when first register.
+        if dtype == 'kline' and handles['data'].size > 0:
+            func(handles['data'])
         handles['func'].append(func)
         handles['reg'] += 1
         #print("register_handle", handles)

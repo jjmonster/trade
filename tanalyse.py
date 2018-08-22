@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from config import cfg
-from framework import fwk
-from market import mkt
 from logger import log
 from utils import isclose
 import matplotlib.pyplot as plt
@@ -12,7 +9,7 @@ from datetime import datetime,timedelta
 import pandas as pd
 import numpy as np
 import talib as ta
-import time
+#import time
 
 
 def _get_df_index_timestamp(df, timestamp):
@@ -93,12 +90,6 @@ class  TechnicalAnalysis():
         self.kl = pd.DataFrame()
         self.sig = ''
         self.form = ''
-
-    def register_kl(self, ktype):
-        mkt.register_handle(ktype, self.handle_data)
-        
-    def unregister_kl(self, ktype):
-        mkt.unregister_handle(ktype, self.handle_data)
 
     def _wait_data(self):
         while self.kl.empty == True or self.data.empty == True:
@@ -289,26 +280,14 @@ class Ma(TechnicalAnalysis):
     def ta_signal(self, timestamp, price):
         pass
 
-bbands = Bbands()
-macd = Macd()
-stoch = Stoch()
-#stochrsi = Stochrsi()
-#kama = Ma('kama', 'kama', timeperiod=10)
-#sma_fast = Ma('sma', 'fast', timeperiod=5)
-#sma_slow = Ma('sma', 'slow', timeperiod=20)
-
-def ta_register():
-    bbands.register_kl("kline")
-    macd.register_kl("kline")
-    stoch.register_kl("kline")
-
-def ta_unregister():
-    bbands.unregister_kl("kline")
-    macd.unregister_kl("kline")
-    stoch.unregister_kl("kline")
-
 if __name__ == '__main__':
-    ta_register()
+    #bbands = Bbands()
+    #macd = Macd()
+    #stoch = Stoch()
+    #stochrsi = Stochrsi()
+    #kama = Ma('kama', 'kama', timeperiod=10)
+    #sma_fast = Ma('sma', 'fast', timeperiod=5)
+    #sma_slow = Ma('sma', 'slow', timeperiod=20)
     #sma_fast.graphic()
     #sma_slow.graphic()
     #kama.graphic()
@@ -322,6 +301,6 @@ if __name__ == '__main__':
 
     #df = df_merge(sma_fast.get_data(), sma_slow.get_data(), bbands.get_data(), macd.get_data()) ##.rename(columns={'real':'fast'})
     #_graphic(df, 'mixed')
-    ta_unregister()
+
 
     

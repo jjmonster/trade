@@ -2,7 +2,7 @@ from config import cfg
 from logger import log,hist
 from framework import fwk
 from market import mkt
-from tanalyse import bbands, macd, stoch, ta_register, ta_unregister
+from tanalyse import Bbands, Macd, Stoch
 from utils import *
 
 import time
@@ -26,6 +26,12 @@ class Robot():
         self.amount_hold = {'buy':0, 'sell':0, 'max':self.balance[cfg.get_coin1()]/2 if cfg.is_future() else 1000}
         self.profit = {'buy':0, 'sell':0, 'price':0, 'amount':self.amount_hold}
 
+        #variables for technical indicator
+        self.indicator = 'stoch'
+        self.bbands = Bbands()
+        self.macd = Macd()
+        self.stoch = Stoch()
+
         #variables for trade signal
         self.prev_sig = ''
         self.bSignal = ''
@@ -33,13 +39,13 @@ class Robot():
         #variables for log print
         self.depth_handle = 0
 
-        #variables for automatic 
-        self.robot_running = 0
+        #variables for automatic running
+        self.running = 0
 
         #variables for test back
         self.testing = False
 
-    def _trade(self,timestamp,   type_key, price, amount):
+    def _trade(self,timestamp, type_key, price, amount):
         ttype = self.trade_type[type_key]
         if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
             if ttype == 1:
@@ -111,27 +117,39 @@ class Robot():
             log.dbg("gap=%f low volume, don't operate!"%(gap))
             return
 
-        signal = bbands.ta_signal(timestamp, (bp+sp)/2)
+        self.bbands.ta_signal(timestamp, (bp+sp)/2)
+        self.macd.ta_signal(timestamp, (bp+sp)/2)
+        self.stoch.ta_signal(timestamp, (bp+sp)/2)
+        if self.indicator == 'bbands':
+            signal = self.stoch.sig   ##indicator change or mix
+        elif self.indicator == 'macd':
+            signal = self.macd.sig
+        elif self.indicator == 'stoch':
+            signal = self.stoch.sig
+        else:
+            signal = 'None'
         #log.dbg("get signal! %s"%signal)
         self.trade(timestamp, signal, bp, ba, sp, sa)
 
     def start(self):
-        if self.robot_running == 0:
+        if self.running == 0:
             log.dbg("robot starting...")
-            self.robot_running = 1            
+            self.running = 1            
             mkt.register_handle('depth', self.handle_depth)
-            ta_register()
-            #thread = threading.Thread(target=self.robot)
-            #thread.start()
+            mkt.register_handle('kline', self.bbands.handle_data)
+            mkt.register_handle('kline', self.macd.handle_data)
+            mkt.register_handle('kline', self.stoch.handle_data)
         else:
             log.dbg("robot already running!")
 
     def stop(self):
-        if self.robot_running == 1:
+        if self.running == 1:
             log.dbg("robot stopping...")
             mkt.unregister_handle('depth', self.handle_depth)
-            ta_unregister()
-            self.robot_running = 0
+            mkt.unregister_handle('kline', self.bbands.handle_data)
+            mkt.unregister_handle('kline', self.macd.handle_data)
+            mkt.unregister_handle('kline', self.stoch.handle_data)
+            self.running = 0
 
 
     def test_back(self):
@@ -139,9 +157,9 @@ class Robot():
         days = 10
         kl_1hour = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=min(days*24, 2000))
         if kl_1hour.size > 0:
-            bbands.handle_data(kl_1hour)
-            macd.handle_data(kl_1hour)
-            stoch.handle_data(kl_1hour)
+            self.bbands.handle_data(kl_1hour)
+            self.macd.handle_data(kl_1hour)
+            self.stoch.handle_data(kl_1hour)
             
         kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=min(days*24*60, 2000))
         if(kl_1min.size <= 0):
