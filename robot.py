@@ -28,7 +28,7 @@ class Robot():
         self.profit = {'buy':0, 'sell':0, 'price':0, 'amount':self.amount_hold}
 
         #variables for technical indicator
-        self.indicator = 'stoch'
+        self.indicator = 'macd'
         self.bbands = Bbands()
         self.macd = Macd()
         self.stoch = Stoch()

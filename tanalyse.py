@@ -175,10 +175,37 @@ class Macd(TechnicalAnalysis):
         self.data['zero'] = pd.Series([0]*kl['c'].size)
         #self.data['price'] = pd.Series(kl['c'] - kl['c'].mean()) #price fixed around 0 for trend analyse
 
+
     def ta_form(self, timestamp, price):
-        pass
+        self.form = ''
+        df = self.get_data_timestamp(timestamp)
+        if df.index.size < 3:
+            return
+        macd = df['macd']
+        m1,m2,m3 = macd.iloc[-3], macd.iloc[-2], macd.iloc[-1]
+        if m1 < m2:
+            if m2 < m3:     #|||
+                self.form = 'rising'
+            elif m2 > m3:   #1|1
+                pass
+        elif m1 > m2:
+            if m2 > m3:    #|||
+                self.form = 'falling'
+            elif m2 < m3:  #|1|
+                pass
+
+        return self.form
+
     def ta_signal(self, timestamp, price):
-        pass
+        self.ta_form(timestamp, price)
+        if self.form == 'rising':
+            self.sig = 'buy'
+        elif self.form == 'falling':
+            self.sig = 'sell'
+        else:
+            self.sig = 'standby'
+        return self.sig
+
 
 class Stoch(TechnicalAnalysis):
     def __init__(self, **params):
@@ -202,7 +229,7 @@ class Stoch(TechnicalAnalysis):
         elif slowd < 20:
             self.form = 'oversell'
         else:
-            self.form = None
+            self.form = ''
             df = self.get_data_timestamp(timestamp)
             if df.index.size < 3:
                 return
