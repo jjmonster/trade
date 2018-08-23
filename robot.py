@@ -3,6 +3,7 @@ from logger import log,hist
 from framework import fwk
 from market import mkt
 from tanalyse import Bbands, Macd, Stoch
+from signalslot import sslot
 from utils import *
 
 import time
@@ -45,6 +46,11 @@ class Robot():
         #variables for test back
         self.testing = False
 
+        sslot.register_indicator_select(self.indicator_select)
+
+    def indicator_select(self, indicator):
+        self.indicator = indicator
+
     def _trade(self,timestamp, type_key, price, amount):
         ttype = self.trade_type[type_key]
         if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
@@ -67,7 +73,9 @@ class Robot():
             else:
                 self.trade_history.append([timestamp, type_key, price, amount])
             #log.info("trade history: %s"%(self.trade_history))
-            hist.info("%s"%([timestamp, type_key, price, amount]))
+            tl = [timestamp, type_key, price, amount]
+            hist.info("%s"%tl)
+            sslot.trade_log(tl)
 
         
     def trade(self, timestamp, signal, bp, ba, sp, sa):
@@ -111,10 +119,12 @@ class Robot():
             runtime_profit['price'] = round((bp+sp)/2,6)
             runtime_profit['ahold'] = self.amount_hold
             log.dbg("runtime_profit:%s"%(runtime_profit))
+            sslot.robot_log("runtime_profit:%s"%(runtime_profit))
 
         gap = gaps(bp, sp)
         if gap > 0.2:
             log.dbg("gap=%f low volume, don't operate!"%(gap))
+            sslot.robot_log("gap=%f low volume, don't operate!"%(gap))
             return
 
         self.bbands.ta_signal(timestamp, (bp+sp)/2)
@@ -152,7 +162,7 @@ class Robot():
             self.running = 0
 
 
-    def test_back(self):
+    def testback(self):
         self.testing = True
         days = 10
         kl_1hour = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=min(days*24, 2000))

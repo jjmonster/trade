@@ -7,8 +7,8 @@ from config import cfg
 from logger import log
 from framework import fwk
 from market import mkt
-from robot import rbt
-from window import win
+from robot import Robot
+from window import windows
 
 class cmdLine():
     def __init__(self):
@@ -28,7 +28,7 @@ class cmdLine():
             (self.cancel_order_all,"cancel all order."),
             (self.rbt.start,"start robot."),
             (self.rbt.stop,"stop robot."),
-            (self.rbt.test_back, "test back"),
+            (self.rbt.testback, "test back"),
             (self.win.mainloop, "windows"),
         ]
 

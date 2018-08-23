@@ -19,6 +19,7 @@ import pandas as pd
 
 from config import cfg
 from market import mkt
+from signalslot import sslot
 from tanalyse import Bbands,Macd,Stoch
 from robot import Robot
 
@@ -54,11 +55,13 @@ def ta_graphic(indicator, ax, *params):
                 type = hist[i][1]
                 price = hist[i][2]
                 if type == 'open_buy':
-                    cms = 'ro'
+                    cms = 'r+'
+                elif type == 'margin_buy' or type == 'loss_buy':
+                    cms = 'rx'
                 elif type == 'open_sell':
-                    cms = 'bo'
-                elif type == 'margin_sell' or type == 'loss_sell' or type == 'margin_buy' or type == 'loss_buy':
-                    cms = 'go'
+                    cms = 'g+'
+                elif type == 'margin_sell' or type == 'loss_sell':
+                    cms = 'gx'
                 ax.plot([time], [price], cms)
 
 class windows:
@@ -107,21 +110,19 @@ class windows:
 
     def indicator_select(self, event):
         indicator = event.widget.get()
-        rbt.indicator = indicator
-        self.markettab.indicator_select(indicator)
-        self.tradetab.indicator_select(indicator)
-        self.analysistab.indicator_select(indicator)
-        self.robottab.indicator_select(indicator)
-        self.debugtab.indicator_select(indicator)
+        sslot.indicator_select(indicator)
 
     def plat_select(self, event):
-        pass
+        plat = event.widget.get()
+        sslot.indicator_select(plat)
 
     def pair_select(self, event):
-        pass
+        pair = event.widget.get()
+        sslot.indicator_select(pair)
 
     def _select(self, event):
-        pass
+        other = event.widget.get()
+        sslot.indicator_select(other)
 
     def tab_layout(self, parent):
         tabs=OrderedDict([("分析",None), ("行情",None), ("交易",None), ("机器人",None), ("debug", None)])
@@ -155,7 +156,8 @@ class windows:
 class AnalysisTab():
     def __init__(self):
         #super(AnalysisTab, self).__init__()
-        pass
+        self.kl = pd.DataFrame()
+        self.trade_history = []
 
     def layout(self, parent):
         fig,self.ta_axes = plt.subplots(2,1,sharex=True)
@@ -174,7 +176,29 @@ class AnalysisTab():
         mkt.register_handle('kline', self.stoch.handle_data)
         #mkt.register_handle('depth', win.handle_depth)
         mkt.register_handle('kline', self.handle_kline)
+        sslot.register_trade_log(self.handle_trade_log)
+        ###options handle
+        sslot.register_indicator_select(self.indicator_select)
+        sslot.register_plat_select(self.plat_select)
+        sslot.register_pair_select(self.pair_select)
+        sslot.register_other_select(self._select)
 
+    def draw(self):
+        self.ta_axes[0].cla()
+        self.ta_axes[1].cla()
+        if self.indicator == 'bbands':
+            ta_graphic('price', self.ta_axes[1], self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('bbands', self.ta_axes[1], self.bbands.get_data())
+        elif self.indicator == 'macd':
+            ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
+        elif self.indicator == 'stoch':
+            ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('stoch', self.ta_axes[1], self.stoch.get_data())
+        else:
+            pass
+        self.ta_canva.draw()
+        
     def handle_depth(self, timestamp, depth):
 #        print("win handle depth",price_history)
 #        ta_graphic('price', self.ta_axes[0], pd.DataFrame(price_history, columns = ['t','price']))
@@ -182,20 +206,14 @@ class AnalysisTab():
         pass
 
     def handle_kline(self, kl):
-        self.ta_axes[0].cla()
-        self.ta_axes[1].cla()
-        if self.indicator == 'bbands':
-            ta_graphic('price', self.ta_axes[1], kl.loc[:,['t','c']], rbt.trade_history)
-            ta_graphic('bbands', self.ta_axes[1], self.bbands.get_data())
-        elif self.indicator == 'macd':
-            ta_graphic('price', self.ta_axes[0], kl.loc[:,['t','c']], rbt.trade_history)
-            ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
-        elif self.indicator == 'stoch':
-            ta_graphic('price', self.ta_axes[0], kl.loc[:,['t','c']], rbt.trade_history)
-            ta_graphic('stoch', self.ta_axes[1], self.stoch.get_data())
-        else:
-            pass
-        self.ta_canva.draw()
+        self.kl = kl
+        self.draw()
+
+    def handle_trade_log(self, log):
+        if len(self.trade_history) > 100:
+            self.trade_history.pop(0)
+        self.trade_history.append(log)
+        self.draw()
 
     def indicator_select(self, indicator):
         self.indicator = indicator
@@ -207,13 +225,13 @@ class AnalysisTab():
             kl = self.stoch.get_kl()
         self.handle_kline(kl)
 
-    def plat_select(self, event):
+    def plat_select(self, plat):
         pass
 
-    def pair_select(self, event):
+    def pair_select(self, pair):
         pass
 
-    def _select(self, event):
+    def _select(self, other):
         pass
 
     def exit(self):
@@ -274,18 +292,34 @@ class TradeTab():
 class RobotTab():
     def __init__(self):
         #super(RobotTab, self).__init__()
-        pass
+        self.rbt = Robot()
 
     def layout(self, parent):
         f = tk.Frame(parent)
-        self.scr = scrolledtext.ScrolledText(f, width=100, height=30)#font=("隶书",18))
+        self.scr = scrolledtext.ScrolledText(f)#, width=100, height=30)
+        self.scr.pack(fill=tk.BOTH, expand=1)
+        f.pack(side=tk.LEFT,fill=tk.BOTH, expand=1)
         
-        f.pack(side=tk.LEFT)
         f = tk.Frame(parent)
+        ttk.Button(f,text='start',command=self.start).pack()
+        ttk.Button(f,text='stop',command=self.stop).pack()
+        ttk.Button(f,text='testback',command=self.testback).pack()
         f.pack(side=tk.LEFT)
 
-    def handle_trade_log(self, msg):
-        self.scr.insert(tk.END, msg)
+        sslot.register_robot_log(self.handle_robot_log)
+
+    def start(self):
+        self.rbt.start()
+        
+    def stop(self):
+        self.rbt.stop()
+
+    def testback(self):
+        self.rbt.testback()
+
+    def handle_robot_log(self, msg):
+        self.scr.insert(tk.END, msg+'\n')
+        self.scr.see(tk.END)
 
     def indicator_select(self, indicator):
         pass
@@ -300,8 +334,7 @@ class RobotTab():
         pass
 
     def exit(self):
-        pass
-
+        self.rbt.stop()
 
 class DebugTab():
     def __init__(self):
