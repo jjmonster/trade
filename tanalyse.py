@@ -184,15 +184,26 @@ class Macd(TechnicalAnalysis):
         macd = df['macd']
         m1,m2,m3 = macd.iloc[-3], macd.iloc[-2], macd.iloc[-1]
         if m1 < m2:
-            if m2 < m3:     #|||
-                self.form = 'rising'
+            if m2 < m3:     #||| #'rising'
+                self.form = 'f1'
             elif m2 > m3:   #1|1
-                pass
+                self.form = 'f2'
         elif m1 > m2:
-            if m2 > m3:    #|||
-                self.form = 'falling'
+            if m2 > m3:    #||| #'falling'
+                self.form = 'f3' 
             elif m2 < m3:  #|1|
-                pass
+                self.form = 'f4'
+
+        if self.form == 'f1' and m1 < macd.min()/3:
+            self.form = 'rising'
+        elif self.form == 'f3' and m1 > macd.max()/3:
+            self.form = 'falling'
+
+        if self.form != 'rising' and self.form != 'falling':
+            if m1 < 0 and m2 > 0 and m3 > m2: #crossing up
+                self.form = 'rising'
+            elif m1 > 0 and m2 < 0 and m3 < m2: #crossing down
+                self.form = 'falling'
 
         return self.form
 

@@ -91,7 +91,7 @@ class windows:
     def param_select_layout(self, parent):
         self.plat = 'coinex'
         self.pair = 'btc_usdt'
-        self.indicator_opt = ['bbands','macd', 'stoch']
+        self.indicator_opt = ['bbands','macd', 'stoch','bbands+macd']
         self.plat_opt = ['coinex','okex']
         self.pair_opt = ['btc_usdt','etc_usdt','eos_usdt','eth_usdt']
         self._opt = ['1','2']
@@ -195,6 +195,10 @@ class AnalysisTab():
         elif self.indicator == 'stoch':
             ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
             ta_graphic('stoch', self.ta_axes[1], self.stoch.get_data())
+        elif self.indicator == 'bbands+macd':
+            ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('bbands', self.ta_axes[0], self.bbands.get_data())
+            ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
         else:
             pass
         self.ta_canva.draw()
@@ -217,7 +221,7 @@ class AnalysisTab():
 
     def indicator_select(self, indicator):
         self.indicator = indicator
-        if indicator == 'bbands':
+        if indicator == 'bbands' or indicator == 'bbands+macd':
             kl = self.bbands.get_kl()
         elif indicator == 'macd':
             kl = self.macd.get_kl()
