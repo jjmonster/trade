@@ -15,8 +15,8 @@ class SignalSlot(object):
                 slots[i](*args);
 
     def disconnect(self, signal, slot):
-        if slot in self.__SSPool[signal]:
-            self.__SSPool[signal].remove(slot)
+        if slot in self._SSPool[signal]:
+            self._SSPool[signal].remove(slot)
 
 class SignalSlotInterface(SignalSlot):
     def __init__(self):

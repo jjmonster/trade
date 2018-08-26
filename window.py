@@ -37,7 +37,7 @@ def ta_graphic(indicator, ax, *params):
             if df.columns[i] == 't':
                 continue
             col = df[df.columns[i]]
-            cms = line_color[int(i%len(line_color))]+line_style[int(i/len(line_color))]
+            cms = line_color[int(i%len(line_color))]+line_maker[0]+line_style[int(i/len(line_color))]
             ax.plot(t, col, cms)
 
     ax.set_title(indicator, fontproperties="SimHei")
@@ -240,6 +240,13 @@ class AnalysisTab():
         mkt.unregister_handle('kline', self.stoch.handle_data)
         mkt.unregister_handle('kline', self.handle_kline)
 #        mkt.unregister_handle('depth', self.handle_depth)
+        sslot.unregister_trade_log(self.handle_trade_log)
+        ###options handle
+        sslot.unregister_indicator_select(self.indicator_select)
+        sslot.unregister_plat_select(self.plat_select)
+        sslot.unregister_pair_select(self.pair_select)
+        sslot.unregister_other_select(self._select)
+
 
 
 class MarketTab():
