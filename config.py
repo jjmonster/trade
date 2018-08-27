@@ -8,99 +8,97 @@ from utils import s2f
 class config:
     def __init__(self, cfg_file):
         self.cf = cfg_file
-        self.cfg = defaultdict(lambda: None)
-        self.cfg_header = defaultdict(lambda: None)
-        self.load_cfg_all()
-        self.load_cfg_header()
+        self.cp = configparser.ConfigParser()
+        self.cp.read(cfg_file, encoding="utf-8")
 
-    def set_cfg(self,key, val):
-        self.cfg[key] = val
+    def write_file(self):
+        with open(self.cf, 'w') as f:
+            self.cp.write(f)
+        f.close()
 
-    def get_cfg(self,key):
-        return self.cfg[key]
+    def set_cfg(self, option, val):
+        for s in self.cp.sections():
+            if self.cp.has_option(s, option):
+                self.cp.set(s, option, val)
+
+    def get_cfg(self, option):
+        for s in self.cp.sections():
+            if self.cp.has_option(s, option):
+                return self.cp.get(s, option)
 
     def get_cfg_all(self):
-        return self.cfg
+        cfg_all = {}
+        for s in self.cp.sections():
+            items = dict(self.cp.items(s))
+            cfg_all = s2f(dict(cfg_all, **items))
+        return cfg_all
 
-    def get_cfg_file(self):
-        return self.cf
+    def get_cfg_section(self, section):
+        return dict(self.cp.items(section))
 
-    def get_cfg_header(self):
-        return self.cfg_header
+    def get_cfg_item(self, section, option, *type):
+        t = 'str'
+        if len(type) > 0:
+            t = type[0]
+        if t == 'int':
+            var = self.cp.getint(section, option)
+        elif t == 'float':
+            var = self.cp.getfloat(section, option)
+        elif t == 'boolean':
+            var = self.cp.getboolean(section, option)
+        else:
+            var = self.cp.get(section, option)
+        return var
+
 
     def get_url(self):
-        return self.cfg['base_url']
+        return self.get_cfg_item('base', 'base_url')
 
     def get_cfg_plat(self):
-        """return platform name"""
-        return self.cfg['base_url'].split('.')[1]
+        return self.get_url().split('.')[1]
+
+    def get_cfg_header(self):
+        return self.get_cfg_section('request_header')
+
+    def get_id(self):
+        return self.get_cfg_item('account','id')
+
+    def get_secretKey(self):
+        return self.get_cfg_item('account','secret_key')
+
+    def is_future(self):
+        return True if cfg.get_cfg_item('misc', 'future_or_spot') == 'future' else False
+
+    def get_future_contract_type(self):
+        return self.get_cfg_item('misc','future_contract_type')
 
     def get_coin1(self):
-        return self.cfg['coin1']
+        return self.get_cfg_item('misc','coin1')
 
     def get_coin2(self):
-        return self.cfg['coin2']
+        return self.get_cfg_item('misc','coin2')
 
     def get_pair(self):
         plt = self.get_cfg_plat()
         if plt == 'okex' or plt == 'okcoin':
-            if self.get_cfg('future_or_spot') == 'future':
-                return self.cfg['coin1']+'_usd'
+            if self.is_future():
+                return self.get_coin1()+'_usd'
             else:
-                return self.cfg['coin1']+'_'+self.cfg['coin2']
+                return self.get_coin1()+'_'+self.get_coin2()
         else:
-            return self.cfg['coin1']+self.cfg['coin2']
-
-    def get_id(self):
-        return self.cfg['id']
-        
-    def get_secretKey(self):
-        return self.cfg['secret_key']
-
-    def get_future_contract_type(self):
-        return self.cfg['future_contract_type']
-
-    def is_future(self):
-        return True if cfg.get_cfg('future_or_spot') == 'future' else False
+            return self.get_coin1()+self.get_coin2()
 
     def get_indicator(self):
-        return self.cfg['indicator']
+        return self.get_cfg_item('misc','indicator')
 
     def get_fee(self):
-        return self.cfg['fee_percentage']
+        return self.get_cfg_item('misc','fee_percentage', 'float')
 
     def get_trans_fee(self):
-        return self.cfg['trans_fee_percentage']
-
-    def load_cfg_all(self):
-        try:
-            c = configparser.ConfigParser()
-            c.read(self.cf, encoding="utf-8")
-            for s in c.sections():
-                dic = dict(c.items(s))
-                self.cfg = s2f(dict(self.cfg, **dic))
-        except:
-            print("Fail parse config file '%s'!"%self.cf)
-        return self.cfg
-
-    def load_cfg_header(self):
-        self.cfg_header = self.load_cfg_section("request_header")
-        return self.cfg_header
-
-    def load_cfg_section(self, section):
-        try:
-            c = configparser.ConfigParser()
-            c.read(self.cf, encoding="utf-8")
-            return dict(c.items(section))
-        except:
-            print("Fail parse config file '%s'!"%self.cf)
-
-    def load_config(self):
-        self.load_cfg_all()
-        self.load_cfg_header()
+        return self.get_cfg_item('misc','trans_fee_percentage', 'float')
 
     def print_cfg(self):
-        print(self.cfg)
+        print(self.get_cfg_all)
 
 cfg = config("base.ini")
 if __name__ == '__main__':
@@ -108,5 +106,11 @@ if __name__ == '__main__':
     print(cfg.get_cfg_all())
     print(cfg.get_cfg_header())
     print(cfg.get_cfg_plat())
-    
+    print(cfg.get_pair())
+    print(cfg.get_id())
+    print(cfg.get_trans_fee())
+    cfg.set_cfg('trans_fee_percentage', '0.9999')
+    print(cfg.get_trans_fee())
+    cfg.write_file()
+
     
