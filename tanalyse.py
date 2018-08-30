@@ -3,13 +3,14 @@
 
 from logger import log
 from utils import isclose
+from market import mkt
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime,timedelta
 import pandas as pd
 import numpy as np
 import talib as ta
-#import time
+import time
 
 
 def _get_df_index_timestamp(df, timestamp):
@@ -116,15 +117,21 @@ class  TechnicalAnalysis():
         self._wait_data()
         return _get_row_data_timestamp(self.data, timestamp)
 
-    def graphic(self):
+    def graphic(self, title):
         self._wait_data()
-        _graphic(self.data)
+        _graphic(self.data, title)
 
 
 class Bbands(TechnicalAnalysis):
     def __init__(self, **params):
         super(Bbands, self).__init__()
         self.params = dict({'timeperiod':20, 'nbdevup':1.5, 'nbdevdn':1.5, 'matype':0}, **params)
+
+    def start(self):
+        mkt.register_handle('kline', self.handle_data)
+
+    def stop(self):
+        mkt.unregister_handle('kline', self.handle_data)
 
     def handle_data(self, kl):
         self.kl = kl #.copy()
@@ -167,6 +174,12 @@ class Macd(TechnicalAnalysis):
     def __init__(self, **params):
         super(Macd, self).__init__()
         self.params = dict({'fastperiod':12, 'slowperiod':26, 'signalperiod':9}, **params)
+
+    def start(self):
+        mkt.register_handle('kline', self.handle_data)
+
+    def stop(self):
+        mkt.unregister_handle('kline', self.handle_data)
 
     def handle_data(self, kl):
         self.kl = kl #.copy()
@@ -223,6 +236,12 @@ class Stoch(TechnicalAnalysis):
         super(Stoch, self).__init__()
         self.params = dict({'fastk_period':9, 'slowk_period':3, 'slowk_matype':0, 'slowd_period':3, 'slowd_matype':0}, **params)
 
+    def start(self):
+        mkt.register_handle('kline', self.handle_data)
+
+    def stop(self):
+        mkt.unregister_handle('kline', self.handle_data)
+
     def handle_data(self, kl):
         self.kl = kl #.copy()
         self.data['t'] = kl['t']
@@ -274,6 +293,12 @@ class Stochrsi(TechnicalAnalysis):
         super(Stochrsi, self).__init__()
         self.params = dict({'timeperiod':14, 'fastk_period':5, 'fastd_period':3, 'fastd_matype':0}, **params)
 
+    def start(self):
+        mkt.register_handle('kline', self.handle_data)
+
+    def stop(self):
+        mkt.unregister_handle('kline', self.handle_data)
+
     def handle_data(self, kl):
         self.kl = kl #.copy()
         self.data['t'] = kl['t']
@@ -291,6 +316,12 @@ class Ma(TechnicalAnalysis):
     def __init__(self, indicator,   col_name, **params):
         super(Ma, self).__init__()
         self.indicator = indicator
+
+    def start(self):
+        mkt.register_handle('kline', self.handle_data)
+
+    def stop(self):
+        mkt.unregister_handle('kline', self.handle_data)
 
     def handle_data(self, kl):
         self.kl = kl #.copy()
@@ -318,7 +349,33 @@ class Ma(TechnicalAnalysis):
     def ta_signal(self, timestamp, price):
         pass
 
+
+class Atr(TechnicalAnalysis):
+    def __init__(self, **params):
+        super(Atr, self).__init__()
+        self.params = dict({'timeperiod':14}, **params)
+        
+    def start(self):
+        mkt.register_handle('kline', self.handle_data)
+
+    def stop(self):
+        mkt.unregister_handle('kline', self.handle_data)
+
+    def handle_data(self, kl):
+        self.kl = kl #.copy()
+        self.data['t'] = kl['t']
+        self.data['real'] = ta.ATR(kl['h'], kl['l'], kl['c'], **self.params)
+
+    def ta_form(self, timestamp, price):
+        #row = self.get_row_data_timestamp(timestamp)
+        #atr = row['real']
+        return self.form
+
+    def ta_signal(self, timestamp, price):
+        return self.sig
+    
 if __name__ == '__main__':
+    atr = Atr()
     #bbands = Bbands()
     #macd = Macd()
     #stoch = Stoch()
@@ -329,9 +386,10 @@ if __name__ == '__main__':
     #sma_fast.graphic()
     #sma_slow.graphic()
     #kama.graphic()
+    atr.graphic('atr')
     #bbands.graphic()
     #macd.graphic()
-    stoch.graphic()
+    #stoch.graphic()
     #stochrsi.graphic()
     
     #up,low = bbands.get_band_timestamp(1533968011)

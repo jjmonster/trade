@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-#from tkinter import *
-import tkinter as tk
+from tkinter import *
+#import tkinter as tk
 from tkinter import ttk,scrolledtext
 from collections import OrderedDict
 
@@ -22,6 +22,7 @@ from market import mkt
 from signalslot import sslot
 from tanalyse import Bbands,Macd,Stoch
 from robot import Robot
+from threading import Thread
 
 
 def ta_graphic(indicator, ax, *params):
@@ -59,9 +60,9 @@ def ta_graphic(indicator, ax, *params):
                 elif type == 'margin_buy' or type == 'loss_buy':
                     cms = 'rx'
                 elif type == 'open_sell':
-                    cms = 'g+'
+                    cms = 'y+'
                 elif type == 'margin_sell' or type == 'loss_sell':
-                    cms = 'gx'
+                    cms = 'yx'
                 ax.plot([time], [price], cms)
 
 class windows:
@@ -69,7 +70,7 @@ class windows:
         pass
 
     def mainloop(self):
-        self.win = tk.Tk()
+        self.win = Tk()
         #bind exit method
         self.win.protocol("WM_DELETE_WINDOW", self.exit)
         self.win.bind('<Escape>', lambda e: self.exit())
@@ -81,30 +82,34 @@ class windows:
         self.win.mainloop()
 
     def layout(self, parent):
-        f = tk.Frame(parent)
+        f = Frame(parent)
         self.param_select_layout(f)
-        f.pack(side=tk.TOP)
-        f = tk.Frame(parent)
+        f.pack(side=TOP)
+        f = Frame(parent)
         self.tab_layout(f)
-        f.pack(side=tk.TOP,fill=tk.BOTH, expand=tk.YES)
+        f.pack(side=TOP,fill=BOTH, expand=YES)
 
     def param_select_layout(self, parent):
-        self.plat = 'coinex'
-        self.pair = 'btc_usdt'
-        self.indicator_opt = ['bbands','macd', 'stoch','bbands+macd']
-        self.plat_opt = ['coinex','okex']
-        self.pair_opt = ['btc_usdt','etc_usdt','eos_usdt','eth_usdt']
-        self._opt = ['1','2']
-        self.add_frame_combobox(parent, self.indicator_opt, self.indicator_select, side=tk.LEFT)
-        self.add_frame_combobox(parent, self.plat_opt, self.plat_select, side=tk.LEFT)
-        self.add_frame_combobox(parent, self.pair_opt, self.pair_select, side=tk.LEFT)
-        self.add_frame_combobox(parent, self._opt, self._select, side=tk.LEFT)
+        #self.plat = 'coinex'
+        #self.pair = 'btc_usdt'
+        indicator_opt = ['bbands','macd', 'stoch','bbands+macd']
+        idx = indicator_opt.index(cfg.get_indicator())
+        self.add_frame_combobox(parent, indicator_opt, idx, self.indicator_select, side=LEFT)
+        plat_opt = ['coinex','okex']
+        idx = plat_opt.index(cfg.get_cfg_plat())
+        self.add_frame_combobox(parent, plat_opt, idx, self.plat_select, side=LEFT)
+        pair_opt = ['btc_usdt','etc_usdt','eos_usdt','eth_usdt']
+        idx = pair_opt.index(cfg.get_coin1()+'_'+cfg.get_coin2())
+        self.add_frame_combobox(parent, pair_opt, idx, self.pair_select, side=LEFT)
+        _opt = ['1','2']
+        self.add_frame_combobox(parent, _opt, 0, self._select, side=LEFT)
 
-    def add_frame_combobox(self, parent, options, func, **params):
-        f = tk.Frame(parent, height=80, width=100)
+    def add_frame_combobox(self, parent, options, index, func, **params):
+        f = Frame(parent, height=80, width=100)
         f.pack(**params)
-        comb = ttk.Combobox(f,textvariable=tk.StringVar())
+        comb = ttk.Combobox(f,textvariable=StringVar())
         comb['values'] = options
+        comb.current(index)
         comb.bind('<<ComboboxSelected>>', func)
         comb.pack()
 
@@ -114,15 +119,15 @@ class windows:
 
     def plat_select(self, event):
         plat = event.widget.get()
-        sslot.indicator_select(plat)
+        sslot.plat_select(plat)
 
     def pair_select(self, event):
         pair = event.widget.get()
-        sslot.indicator_select(pair)
+        sslot.pair_select(pair)
 
     def _select(self, event):
         other = event.widget.get()
-        sslot.indicator_select(other)
+        sslot.other_select(other)
 
     def tab_layout(self, parent):
         tabs=OrderedDict([("分析",None), ("行情",None), ("交易",None), ("机器人",None), ("debug", None)])
@@ -130,7 +135,7 @@ class windows:
         for key in tabs.keys():#sorted(tabs.keys()):
             tabs[key] = ttk.Frame(tab)
             tab.add(tabs[key], text=key)
-        tab.pack(expand=1, fill="both")
+        tab.pack(expand=YES, fill="both")
 
         self.markettab = MarketTab()
         self.markettab.layout(tabs['行情'])
@@ -162,18 +167,17 @@ class AnalysisTab():
     def layout(self, parent):
         fig,self.ta_axes = plt.subplots(2,1,sharex=True)
         self.ta_canva =FigureCanvasTkAgg(fig, master=parent)
-        self.ta_canva.get_tk_widget().pack(fill=tk.BOTH, expand=1)
-        self.ta_canva._tkcanvas.pack(fill=tk.BOTH, expand=1)
+        self.ta_canva.get_tk_widget().pack(fill=BOTH, expand=YES)
+        self.ta_canva._tkcanvas.pack(fill=BOTH, expand=YES)
         toolbar = NavigationToolbar2TkAgg(self.ta_canva, parent)
         toolbar.update()
         ###data graphic
         self.bbands = Bbands()
         self.macd = Macd()
         self.stoch = Stoch()
-        self.indicator = cfg.get_indicator()
-        mkt.register_handle('kline', self.bbands.handle_data)
-        mkt.register_handle('kline', self.macd.handle_data)
-        mkt.register_handle('kline', self.stoch.handle_data)
+        self.bbands.start()
+        self.macd.start()
+        self.stoch.start()
         #mkt.register_handle('depth', win.handle_depth)
         mkt.register_handle('kline', self.handle_kline)
         sslot.register_trade_log(self.handle_trade_log)
@@ -186,16 +190,17 @@ class AnalysisTab():
     def draw(self):
         self.ta_axes[0].cla()
         self.ta_axes[1].cla()
-        if self.indicator == 'bbands':
+        indicator = cfg.get_indicator()
+        if indicator == 'bbands':
             ta_graphic('price', self.ta_axes[1], self.kl.loc[:,['t','c']], self.trade_history)
             ta_graphic('bbands', self.ta_axes[1], self.bbands.get_data())
-        elif self.indicator == 'macd':
+        elif indicator == 'macd':
             ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
             ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
-        elif self.indicator == 'stoch':
+        elif indicator == 'stoch':
             ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
             ta_graphic('stoch', self.ta_axes[1], self.stoch.get_data())
-        elif self.indicator == 'bbands+macd':
+        elif indicator == 'bbands+macd':
             ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
             ta_graphic('bbands', self.ta_axes[0], self.bbands.get_data())
             ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
@@ -220,7 +225,6 @@ class AnalysisTab():
         self.draw()
 
     def indicator_select(self, indicator):
-        self.indicator = indicator
         if indicator == 'bbands' or indicator == 'bbands+macd':
             kl = self.bbands.get_kl()
         elif indicator == 'macd':
@@ -239,9 +243,9 @@ class AnalysisTab():
         pass
 
     def exit(self):
-        mkt.unregister_handle('kline', self.bbands.handle_data)
-        mkt.unregister_handle('kline', self.macd.handle_data)
-        mkt.unregister_handle('kline', self.stoch.handle_data)
+        self.bbands.stop()
+        self.macd.stop()
+        self.stoch.stop()
         mkt.unregister_handle('kline', self.handle_kline)
 #        mkt.unregister_handle('depth', self.handle_depth)
         sslot.unregister_trade_log(self.handle_trade_log)
@@ -306,17 +310,43 @@ class RobotTab():
         self.rbt = Robot()
 
     def layout(self, parent):
-        f = tk.Frame(parent)
-        self.scr = scrolledtext.ScrolledText(f)#, width=100, height=30)
-        self.scr.pack(fill=tk.BOTH, expand=1)
-        f.pack(side=tk.LEFT,fill=tk.BOTH, expand=1)
-        
-        f = tk.Frame(parent)
-        ttk.Button(f,text='start',command=self.start).pack()
-        ttk.Button(f,text='stop',command=self.stop).pack()
-        ttk.Button(f,text='testback',command=self.testback).pack()
-        f.pack(side=tk.LEFT)
+        ########
+        lf = LabelFrame(parent, text='Logs')
+        self.scr = scrolledtext.ScrolledText(lf)#, width=100, height=30)
+        self.scr.pack(fill=BOTH, expand=YES)
+        lf.pack(side=LEFT,fill=BOTH, expand=YES)
 
+        ########
+        lf = LabelFrame(parent, text='Status')
+        lf1 = LabelFrame(lf, text='profit',labelanchor=W)
+        self.profitlist = {}
+        for i in self.rbt.runtime_profit.keys():
+            self.profitlist[i] = Label(lf1, text=i+': '+str(self.rbt.runtime_profit[i]), width=20)
+            self.profitlist[i].pack()
+        lf1.pack(side=TOP,fill=X, expand=YES)
+
+        lf2 = LabelFrame(lf, text='amount',labelanchor=W)
+        self.amountlist = {}
+        for i in self.rbt.amount_hold.keys():
+            self.amountlist[i] = Label(lf2, text=i+': '+str(self.rbt.amount_hold[i]), width=20)
+            self.amountlist[i].pack()
+        lf2.pack(side=TOP,fill=X, expand=YES)
+        lf.pack(side=LEFT,fill=BOTH, expand=YES)
+
+        #########
+        lf = LabelFrame(parent, text='Paramters')
+        
+        
+        lf.pack(side=LEFT,fill=BOTH, expand=YES)
+        
+        #########
+        lf = LabelFrame(parent, text='Action')
+        ttk.Button(lf,text='start',command=self.start).pack()
+        ttk.Button(lf,text='stop',command=self.stop).pack()
+        ttk.Button(lf,text='testback',command=self.testback).pack()
+        lf.pack(side=LEFT,fill=BOTH, expand=YES)
+
+        #####
         sslot.register_robot_log(self.handle_robot_log)
 
     def start(self):
@@ -326,11 +356,15 @@ class RobotTab():
         self.rbt.stop()
 
     def testback(self):
-        self.rbt.testback()
+        Thread(target = self.rbt.testback).start()
 
     def handle_robot_log(self, msg):
-        self.scr.insert(tk.END, msg+'\n')
-        self.scr.see(tk.END)
+        self.scr.insert(END, msg+'\n')
+        self.scr.see(END)
+        for i in self.rbt.runtime_profit.keys():
+            self.profitlist[i].config(text=i+':'+str(self.rbt.runtime_profit[i]))
+        for i in self.rbt.amount_hold.keys():
+            self.amountlist[i].config(text=i+':'+str(self.rbt.amount_hold[i]))
 
     def indicator_select(self, indicator):
         pass
@@ -356,7 +390,7 @@ class DebugTab():
         btn = ttk.Button(parent,text='test',command=self.btn_click)
         btn.pack()
         self.plat_select_widget(parent)
-        self.debug_label=tk.Label(parent,bg='pink', text='empty')
+        self.debug_label=Label(parent,bg='pink', text='empty')
         self.debug_label.pack()
 
     def btn_click(self):
@@ -364,12 +398,12 @@ class DebugTab():
         
     def plat_select_widget(self, parent):
         self.plat=("okex","coinex","fcoin")
-        self.platvar = tk.StringVar()
+        self.platvar = StringVar()
         self.platvar.set(0)
 
-        lf=tk.LabelFrame(parent,  text="平台选择")
+        lf=LabelFrame(parent,  text="平台选择")
         for i in range(len(self.plat)):
-            tk.Radiobutton(lf, variable=self.platvar, value=self.plat[i],
+            Radiobutton(lf, variable=self.platvar, value=self.plat[i],
                         text=self.plat[i],indicatoron=0, width=10,
                         command=self.debug_label_update).pack()
         lf.pack()

@@ -8,16 +8,19 @@ from logger import log
 import pandas as pd
 import threading
 import time
+from signalslot import sslot
 
 class market:
     def __init__(self):
         self.days = 10
         self.data_handles = {
-            'price':{'thandle':None, 'tfunc':self._update_price, 'tperiod':1, 'data':0, 'func':[], 'reg':0},
-            'balance':{'thandle':None, 'tfunc':self._update_balance, 'tperiod':1, 'data':[], 'func':[], 'reg':0},
+            'price':{'thandle':None, 'tfunc':self._update_price, 'tperiod':10, 'data':0, 'func':[], 'reg':0},
+            #'balance':{'thandle':None, 'tfunc':self._update_balance, 'tperiod':10, 'data':[], 'func':[], 'reg':0},
             'depth':{'thandle':None, 'tfunc':self._update_depth, 'tperiod':1, 'data':[], 'func':[], 'reg':0},
             'kline':{'thandle':None, 'tfunc':self._update_kline, 'tperiod':3600, 'data':pd.DataFrame(), 'func':[], 'reg':0},
-        } ##defaultdict(lambda:[])  
+        } ##defaultdict(lambda:[])
+        sslot.register_plat_select(self._update_kline_without_timer)
+        sslot.register_pair_select(self._update_kline_without_timer)
       
     def get_price(self):
         return self.data_handles['price']['data']
@@ -33,7 +36,8 @@ class market:
 
     def _update_balance(self):
         handles = self.data_handles['balance']
-        handles['data'] = fwk.get_balance(cfg.get_pair())
+        handles['data'][0] = fwk.get_balance(cfg.get_coin1())
+        handles['data'][1] = fwk.get_balance(cfg.get_coin2())
         if handles['data'] != None and len(handles['data']) > 0:
             for f in handles['func']:
                 f(handles['data'])
@@ -80,6 +84,13 @@ class market:
             period = handles['tperiod'] - int(time.time())%handles['tperiod'] + 1 #local time currently, will use server time to improve
             handles['thandle'] = threading.Timer(period, handles['tfunc'])
             handles['thandle'].start()
+
+    def _update_kline_without_timer(self, *notuse):
+        handles = self.data_handles['kline']
+        handles['data'] = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=min(self.days*24, 2000))
+        if handles['data'].size > 0:
+            for f in handles['func']:
+                f(handles['data'])
 
     def register_handle(self, dtype, func):
         log.dbg("register_handle %s %s"%(dtype, func))

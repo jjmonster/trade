@@ -16,8 +16,7 @@ class cmdLine():
         self.win = windows()
         self.help_list = [
             (self.exit,"exit."),
-            (cfg.print_cfg,"get config."),
-            (cfg.load_config,"reload config."),
+            (cfg.print_cfg,"print config."),
             (self.print_price,"get price with pair."),
             (self.print_depth, "get depth with pair."),
             (self.print_balance, "get all balance"),

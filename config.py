@@ -4,12 +4,17 @@
 import configparser
 from collections import defaultdict
 from utils import s2f
+from signalslot import sslot
 
 class config:
     def __init__(self, cfg_file):
         self.cf = cfg_file
         self.cp = configparser.ConfigParser()
         self.cp.read(cfg_file, encoding="utf-8")
+
+        sslot.register_plat_select(self.set_url)
+        sslot.register_pair_select(self.set_pair)
+        sslot.register_indicator_select(self.set_indicator)
 
     def write_file(self):
         with open(self.cf, 'w') as f:
@@ -54,12 +59,34 @@ class config:
     def get_url(self):
         return self.get_cfg_item('base', 'base_url')
 
+    def set_url(self, platform):
+        if platform == 'okex':
+            self.cp.set('base', 'base_url', 'https://www.okex.com')
+        elif platform == 'okcoin':
+            self.cp.set('base', 'base_url', 'https://www.okcoin.com')
+        elif platform == 'coinex':
+            self.cp.set('base', 'base_url', 'https://api.coinex.com/v1')
+        self.set_cfg_header()
+
     def get_cfg_plat(self):
         return self.get_url().split('.')[1]
 
     def get_cfg_header(self):
         return self.get_cfg_section('request_header')
 
+    def set_cfg_header(self):
+        plt = self.get_cfg_plat()
+        if plt == 'okex' or plt == 'okcoin':
+            for o in self.cp.options('request_header'):
+                self.cp.remove_option('request_header', o)
+            self.cp.set('request_header', 'Content-Type', 'application/x-www-form-urlencoded')
+        elif plt == 'coinex':
+            for o in self.cp.options('request_header'):
+                self.cp.remove_option('request_header', o)
+            self.cp.set('request_header','Content-Type','application/json')
+            self.cp.set('request_header','User-Agent','Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36')
+            self.cp.set('request_header','authorization','')
+            
     def get_id(self):
         return self.get_cfg_item('account','id')
 
@@ -75,8 +102,14 @@ class config:
     def get_coin1(self):
         return self.get_cfg_item('misc','coin1')
 
+    def set_coin1(self, val):
+        self.set_cfg('coin1', val)
+
     def get_coin2(self):
         return self.get_cfg_item('misc','coin2')
+
+    def set_coin2(self, val):
+        self.set_cfg('coin2', val)
 
     def get_pair(self):
         plt = self.get_cfg_plat()
@@ -88,8 +121,19 @@ class config:
         else:
             return self.get_coin1()+self.get_coin2()
 
+    def set_pair(self, pair):
+        try:
+            coins = pair.split('_')
+            self.set_coin1(coins[0])
+            self.set_coin2(coins[1])
+        except:
+            log.err("fail set pair! %s"%pair)
+        
     def get_indicator(self):
         return self.get_cfg_item('misc','indicator')
+
+    def set_indicator(self, val):
+        self.set_cfg('indicator', val)
 
     def get_fee(self):
         return self.get_cfg_item('misc','fee_percentage', 'float')
@@ -98,7 +142,7 @@ class config:
         return self.get_cfg_item('misc','trans_fee_percentage', 'float')
 
     def print_cfg(self):
-        print(self.get_cfg_all)
+        print(self.get_cfg_all())
 
 cfg = config("base.ini")
 if __name__ == '__main__':
@@ -108,9 +152,10 @@ if __name__ == '__main__':
     print(cfg.get_cfg_plat())
     print(cfg.get_pair())
     print(cfg.get_id())
-    print(cfg.get_trans_fee())
-    cfg.set_cfg('trans_fee_percentage', '0.9999')
-    print(cfg.get_trans_fee())
-    cfg.write_file()
+    cfg.set_url("okcoin")
+    print(cfg.get_cfg_header())
+    cfg.set_pair("aaa_bbb")
+    print(cfg.get_pair())
+    #cfg.write_file()
 
     
