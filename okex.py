@@ -143,13 +143,16 @@ class OKCoinAPI(OKCoinBase):
         params['sign'] = self._request.sign(params, cfg.get_secretKey())
         headers = cfg.get_cfg_header()
         url = cfg.get_url() + res
-        print(url, params, headers)
+        #print(url, params, headers)
         return self._request.post(url, params, headers)
 
     #######future and spot public
     def user_info(self):
         params = {'api_key': cfg.get_id()}
-        res = OKCoinBase.RESOURCES_URL['user_info'].format('future_' if cfg.is_future() else '')
+        if cfg.is_future():
+            res = OKCoinBase.RESOURCES_URL['user_info' if cfg.is_future_mode_all() else 'user_info_4fix'].format('future_')
+        else:
+            res = OKCoinBase.RESOURCES_URL['user_info']
         return self._signed_request(params, res)
 
     def trade(self, symbol, price, amount, trade_type, match_price):
@@ -211,7 +214,7 @@ class OKCoinAPI(OKCoinBase):
             'symbol': symbol,
             'contract_type':cfg.get_future_contract_type()
         }
-        res = OKCoinBase.RESOURCES_URL['position']
+        res = OKCoinBase.RESOURCES_URL['position' if cfg.is_future_mode_all() else 'position_4fix']
         return self._signed_request(params, res)
         
     def future_trades_history(self, symbol, date, since):
@@ -232,21 +235,6 @@ class OKCoinAPI(OKCoinBase):
             'contract_type': cfg.get_future_contract_type()
         }
         res = OKCoinBase.RESOURCES_URL['cancel']
-        return self._signed_request(params, res)
-
-    def future_user_info_4fix(self):
-        params = {'api_key': cfg.get_id()}
-        res = OKCoinBase.RESOURCES_URL['user_info_4fix']
-        return self._signed_request(params, res)
-    
-    def future_position_4fix(self, symbol, trade_type):
-        params = {
-            'api_key': cfg.get_id(),
-            'symbol': symbol,
-            'contract_type': cfg.get_future_contract_type(),
-            'type': trade_type
-        }
-        res = OKCoinBase.RESOURCES_URL['position_4fix']
         return self._signed_request(params, res)
 
     def future_explosive(self, symbol, status, current_page, page_number, page_length):
@@ -312,7 +300,7 @@ if __name__ == '__main__':
     print(okb.user_info())
     #print(okb.trade(cfg.get_pair(), 1, 1, 1, 0))
     #print(okb.order_info(cfg.get_pair(), -1, 1, 1, 50))
-    #print(okb.future_position(cfg.get_pair()))
+    print(okb.future_position(cfg.get_coin1()))
     #print(okb.future_trades_history(cfg.get_pair(), "2018-08-01", 0))
     #print(okb.future_explosive(cfg.get_pair(), 0, 1, 1, 50))
 

@@ -46,6 +46,7 @@ class httpRequest(object):
             r.raise_for_status()
         except requests.exceptions.HTTPError as err:
             log.err(err)
+            log.err("%s %s %s"%(r_url, params, headers))
         if r.status_code == 200:
             return r.json()
 

@@ -94,19 +94,18 @@ class config:
         return self.get_cfg_item('account','secret_key')
 
     def is_future(self):
-        return True if cfg.get_cfg_item('misc', 'future_or_spot') == 'future' else False
-
-    def get_future_contract_type(self):
-        return self.get_cfg_item('misc','future_contract_type')
+        return True if cfg.get_cfg_item('public', 'future_or_spot') == 'future' else False
 
     def get_coin1(self):
-        return self.get_cfg_item('misc','coin1')
+        return self.get_cfg_item('public','coin1')
 
     def set_coin1(self, val):
         self.set_cfg('coin1', val)
 
     def get_coin2(self):
-        return self.get_cfg_item('misc','coin2')
+        if self.is_future():
+            return 'usd'
+        return self.get_cfg_item('public','coin2')
 
     def set_coin2(self, val):
         self.set_cfg('coin2', val)
@@ -128,18 +127,34 @@ class config:
             self.set_coin2(coins[1])
         except:
             log.err("fail set pair! %s"%pair)
-        
+
     def get_indicator(self):
-        return self.get_cfg_item('misc','indicator')
+        return self.get_cfg_item('public','indicator')
 
     def set_indicator(self, val):
         self.set_cfg('indicator', val)
 
     def get_fee(self):
-        return self.get_cfg_item('misc','fee_percentage', 'float')
+        return self.get_cfg_item('public','fee_percentage', 'float')
 
     def get_trans_fee(self):
-        return self.get_cfg_item('misc','trans_fee_percentage', 'float')
+        return self.get_cfg_item('public','trans_fee_percentage', 'float')
+
+
+    def get_future_contract_type(self):
+        return self.get_cfg_item('future','future_contract_type')
+
+    def get_future_buy_lever(self):
+        return self.get_cfg_item('future','future_buy_lever')
+
+    def get_future_sell_lever(self):
+        return self.get_cfg_item('future','future_sell_lever')
+
+    def get_future_mode_all_or_every(self):
+        return self.get_cfg_item('future','future_mode_all_or_every')
+
+    def is_future_mode_all(self):
+        return True if self.get_future_mode_all_or_every() == 'all' else False
 
     def print_cfg(self):
         print(self.get_cfg_all())

@@ -83,7 +83,7 @@ class Robot():
             #if cfg.is_future():
             #else:
                 #self.curr_balance[c1]['available'] = self.curr_balance[c1]['available'] + self.amount_hold
-        else
+        else:
             self.curr_balance = {c1:fwk.get_balance(c1), c2:fwk.get_balance(c2)}
 
         if cfg.is_future():

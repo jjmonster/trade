@@ -98,8 +98,11 @@ class windows:
         plat_opt = ['coinex','okex']
         idx = plat_opt.index(cfg.get_cfg_plat())
         self.add_frame_combobox(parent, plat_opt, idx, self.plat_select, side=LEFT)
-        pair_opt = ['btc_usdt','etc_usdt','eos_usdt','eth_usdt']
-        idx = pair_opt.index(cfg.get_coin1()+'_'+cfg.get_coin2())
+        if cfg.get_cfg_plat() == 'okex' and cfg.is_future():
+            pair_opt = ['btc_usd','etc_usd','eos_usd','eth_usd']
+        else:
+            pair_opt = ['btc_usdt','etc_usdt','eos_usdt','eth_usdt']
+        idx = pair_opt.index(cfg.get_pair())
         self.add_frame_combobox(parent, pair_opt, idx, self.pair_select, side=LEFT)
         _opt = ['1','2']
         self.add_frame_combobox(parent, _opt, 0, self._select, side=LEFT)
