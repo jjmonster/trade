@@ -12,6 +12,10 @@ class config:
         self.cp = configparser.ConfigParser()
         self.cp.read(cfg_file, encoding="utf-8")
 
+        plt = self.get_cfg_plat()
+        if plt != 'okex' and plt != 'okcoin':
+            self.set_cfg('future_or_spot','spot')
+
         sslot.register_plat_select(self.set_url)
         sslot.register_pair_select(self.set_pair)
         sslot.register_indicator_select(self.set_indicator)

@@ -26,6 +26,7 @@ class Robot():
         self.price_history = list() #time,price
         self.trade_history = list() #time,type,price,amount
         self.trade_type = {'open_buy':1, 'open_sell':2, 'loss_buy':3, 'loss_sell':4, 'margin_buy':3,'margin_sell':4}
+
         self.amount_hold = {'buy':0, 'sell':0, 'max':0}
         self.profit = {'buy':0, 'sell':0}
         self.runtime_profit = OrderedDict([('buy',0),('sell',0),('price',0)])

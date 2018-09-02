@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from config import cfg
+from framework import fwk
 from market import mkt
 from signalslot import sslot
 from tanalyse import Bbands,Macd,Stoch
@@ -92,16 +93,13 @@ class windows:
     def param_select_layout(self, parent):
         #self.plat = 'coinex'
         #self.pair = 'btc_usdt'
-        indicator_opt = ['bbands','macd', 'stoch','bbands+macd']
+        indicator_opt = ['bbands','macd', 'stoch','bbands+macd', 'stoch+macd']
         idx = indicator_opt.index(cfg.get_indicator())
         self.add_frame_combobox(parent, indicator_opt, idx, self.indicator_select, side=LEFT)
         plat_opt = ['coinex','okex']
         idx = plat_opt.index(cfg.get_cfg_plat())
         self.add_frame_combobox(parent, plat_opt, idx, self.plat_select, side=LEFT)
-        if cfg.get_cfg_plat() == 'okex' and cfg.is_future():
-            pair_opt = ['btc_usd','etc_usd','eos_usd','eth_usd']
-        else:
-            pair_opt = ['btc_usdt','etc_usdt','eos_usdt','eth_usdt']
+        pair_opt = fwk.get_all_pair()
         idx = pair_opt.index(cfg.get_pair())
         self.add_frame_combobox(parent, pair_opt, idx, self.pair_select, side=LEFT)
         _opt = ['1','2']
@@ -168,8 +166,9 @@ class AnalysisTab():
         self.trade_history = []
 
     def layout(self, parent):
-        fig,self.ta_axes = plt.subplots(2,1,sharex=True)
-        self.ta_canva =FigureCanvasTkAgg(fig, master=parent)
+        self.fig = plt.figure()
+        #self.fig,self.ta_axes = plt.subplots(3,1,sharex=True)
+        self.ta_canva =FigureCanvasTkAgg(self.fig, master=parent)
         self.ta_canva.get_tk_widget().pack(fill=BOTH, expand=YES)
         self.ta_canva._tkcanvas.pack(fill=BOTH, expand=YES)
         toolbar = NavigationToolbar2TkAgg(self.ta_canva, parent)
@@ -191,22 +190,27 @@ class AnalysisTab():
         sslot.register_other_select(self._select)
 
     def draw(self):
-        self.ta_axes[0].cla()
-        self.ta_axes[1].cla()
+        self.fig.clf()
         indicator = cfg.get_indicator()
         if indicator == 'bbands':
-            ta_graphic('price', self.ta_axes[1], self.kl.loc[:,['t','c']], self.trade_history)
-            ta_graphic('bbands', self.ta_axes[1], self.bbands.get_data())
+            ax = self.fig.add_subplot(111)
+            ta_graphic('price', ax, self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('bbands', ax, self.bbands.get_data())
         elif indicator == 'macd':
-            ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
-            ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
+            ta_graphic('price', self.fig.add_subplot(211), self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('macd', self.fig.add_subplot(212), self.macd.get_data())
         elif indicator == 'stoch':
-            ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
-            ta_graphic('stoch', self.ta_axes[1], self.stoch.get_data())
+            ta_graphic('price', self.fig.add_subplot(211), self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('stoch', self.fig.add_subplot(212), self.stoch.get_data())
         elif indicator == 'bbands+macd':
-            ta_graphic('price', self.ta_axes[0], self.kl.loc[:,['t','c']], self.trade_history)
-            ta_graphic('bbands', self.ta_axes[0], self.bbands.get_data())
-            ta_graphic('macd', self.ta_axes[1], self.macd.get_data())
+            ax = self.fig.add_subplot(211)
+            ta_graphic('price', ax, self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('bbands', ax, self.bbands.get_data())
+            ta_graphic('macd', self.fig.add_subplot(212), self.macd.get_data())
+        elif indicator == 'stoch+macd':
+            ta_graphic('price', self.fig.add_subplot(311), self.kl.loc[:,['t','c']], self.trade_history)
+            ta_graphic('stoch', self.fig.add_subplot(312), self.stoch.get_data())
+            ta_graphic('macd', self.fig.add_subplot(313), self.macd.get_data())
         else:
             pass
         self.ta_canva.draw()
@@ -232,7 +236,7 @@ class AnalysisTab():
             kl = self.bbands.get_kl()
         elif indicator == 'macd':
             kl = self.macd.get_kl()
-        elif indicator == 'stoch':
+        elif indicator == 'stoch' or indicator == 'stoch+macd':
             kl = self.stoch.get_kl()
         self.handle_kline(kl)
 

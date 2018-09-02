@@ -68,17 +68,19 @@ class OKCoinAPI(OKCoinBase):
     def __init__(self):
         super(OKCoinAPI, self).__init__()
 
-    @classmethod
-    def build_request_string(self, name, value, params='', choice=()):
-        if value:
-            if value in choice:
-                return params + '&' + name + '=' + str(value) if params else name + '=' + str(value)
-            else:
-                raise ValueError('{0} should be in {1}'.format(value), choice)
-        else:
-            return params
 #######################market api#################
+    ####common####
     def ticker(self, symbol):
+        """return:
+        buy:买一价
+        contract_id:合约ID
+        high:最高价
+        last:最新成交价
+        low:最低价
+        sell:卖一价
+        unit_amount:合约面值
+        vol:成交量(最近的24小时)
+        """
         params = {'symbol':symbol}
         if cfg.is_future():
             params['contract_type'] = cfg.get_future_contract_type()
@@ -86,6 +88,10 @@ class OKCoinAPI(OKCoinBase):
         return self._request.get(url, params)['ticker']
 
     def depth(self, symbol, size=0, merge=0):
+        """return:
+        asks :卖方深度
+        bids :买方深度
+        """
         params = {'symbol':symbol, 'size':size, 'merge':merge}
         if cfg.is_future():
             params['contract_type'] = cfg.get_future_contract_type()
@@ -93,6 +99,14 @@ class OKCoinAPI(OKCoinBase):
         return self._request.get(url, params)
 
     def trades(self, symbol):
+        """return:
+        amount：交易数量
+        date_ms：交易时间(毫秒)
+        date：交易时间
+        price：交易价格
+        tid：交易ID
+        type：交易类型
+        """
         params = {'symbol':symbol}
         if cfg.is_future():
             params['contract_type'] = cfg.get_future_contract_type()
@@ -112,27 +126,44 @@ class OKCoinAPI(OKCoinBase):
 
     ######future private
     def future_index(self, symbol):
+        """return:
+        future_index :指数
+        """
         params = {'symbol':symbol}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['index']
         return self._request.get(url, params)['future_index']
 
     def future_exchange_rate(self):
+        """return:
+        rate：美元-人民币汇率
+        """
         params = {}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['exchange_rate']
         return self._request.get(url, params)['rate']
 
 
     def future_estimated_price(self, symbol):
+        """return:
+        forecast_price:交割预估价
+        """
         params = {'symbol':symbol}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['estimated_price']
         return self._request.get(url, params)['forecast_price']
 
     def future_hold_amount(self, symbol):
+        """return:
+        amount:总持仓量（张）
+        contract_name:合约名
+        """
         params = {'symbol':symbol, 'contract_type':cfg.get_future_contract_type()}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['hold_amount']
         return self._request.get(url, params)[0]['amount']
 
     def future_price_limit(self, symbol):
+        """return:
+        high :最高买价
+        low :最低卖价
+        """
         params = {'symbol':symbol, 'contract_type':cfg.get_future_contract_type()}
         url = cfg.get_url() + OKCoinBase.RESOURCES_URL['price_limit']
         return self._request.get(url, params)
@@ -148,14 +179,42 @@ class OKCoinAPI(OKCoinBase):
 
     #######future and spot public
     def user_info(self):
+        """return:
+        account_rights:账户权益
+        keep_deposit：保证金
+        profit_real：已实现盈亏
+        profit_unreal：未实现盈亏
+        risk_rate：保证金率
+
+       or 4fix return:
+        
+        balance:账户余额
+        available:合约可用
+        balance:账户(合约)余额
+        bond:固定保证金
+        contract_id:合约ID
+        contract_type:合约类别
+        freeze:冻结
+        profit:已实现盈亏
+        unprofit:未实现盈亏
+        rights:账户权益
+        """
         params = {'api_key': cfg.get_id()}
         if cfg.is_future():
             res = OKCoinBase.RESOURCES_URL['user_info' if cfg.is_future_mode_all() else 'user_info_4fix'].format('future_')
         else:
             res = OKCoinBase.RESOURCES_URL['user_info']
-        return self._signed_request(params, res)
+        ret = self._signed_request(params, res)
+        if ret['result'] == "true":
+            return ret['info']
+        else:
+            return None
 
     def trade(self, symbol, price, amount, trade_type, match_price):
+        """return:
+        order_id ： 订单ID
+        result ： true代表成功返回
+        """
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
@@ -168,7 +227,11 @@ class OKCoinAPI(OKCoinBase):
             params['contract_type'] = cfg.get_future_contract_type()
             params['lever_rate'] = 10
         res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if cfg.is_future() else '')
-        return self._signed_request(params, res)
+        ret = self._signed_request(params, res)
+        if ret['result'] == "true":
+            return ret['order_id']
+        else:
+            return False
 
     def batch_trade(self, symbol, orders_data):
         params = {
@@ -183,6 +246,21 @@ class OKCoinAPI(OKCoinBase):
         return self._signed_request(params, res)
 
     def order_info(self, symbol, order_id, status, current_page, page_length):
+        """return:
+        amount: 委托数量
+        contract_name: 合约名称
+        create_date: 委托时间
+        deal_amount: 成交数量
+        fee: 手续费
+        order_id: 订单ID
+        price: 订单价格
+        price_avg: 平均价格
+        status: 订单状态(0等待成交 1部分成交 2全部成交 -1撤单 4撤单处理中 5撤单中)
+        symbol: btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+        type: 订单类型 1：开多 2：开空 3：平多 4： 平空
+        unit_amount:合约面值
+        lever_rate: 杠杆倍数  value:10\20  默认10 
+        """
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
@@ -194,7 +272,12 @@ class OKCoinAPI(OKCoinBase):
         if cfg.is_future():
             params['contract_type'] = cfg.get_future_contract_type()
         res = OKCoinBase.RESOURCES_URL['order_info'].format('future_' if cfg.is_future() else '')
-        return self._signed_request(params, res)
+        ret = self._signed_request(params, res)
+        if ret['result'] == "true":
+            return ret['orders']
+        else:
+            return None
+        
 
     def orders_info(self, symbol, order_id):
         params = {
@@ -205,10 +288,56 @@ class OKCoinAPI(OKCoinBase):
         if cfg.is_future():
             params['contract_type'] = cfg.get_future_contract_type()
         res = OKCoinBase.RESOURCES_URL['orders_info'].format('future_' if cfg.is_future() else '')
-        return self._signed_request(params, res)
+        ret = self._signed_request(params, res)
+        if ret['result'] == "true":
+            return ret['orders']
+        else:
+            return None
+
 
     #####future private
     def future_position(self, symbol):
+        """return:
+        buy_amount(double):多仓数量
+        buy_available:多仓可平仓数量
+        buy_price_avg(double):开仓平均价
+        buy_price_cost(double):结算基准价
+        buy_profit_real(double):多仓已实现盈余
+        contract_id(long):合约id
+        create_date(long):创建日期
+        lever_rate:杠杆倍数
+        sell_amount(double):空仓数量
+        sell_available:空仓可平仓数量
+        sell_price_avg(double):开仓平均价
+        sell_price_cost(double):结算基准价
+        sell_profit_real(double):空仓已实现盈余
+        symbol:btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+        contract_type:合约类型
+        force_liqu_price:预估爆仓价
+
+       or 4fix return:
+        buy_amount:多仓数量
+        buy_available:多仓可平仓数量 
+        buy_bond:多仓保证金
+        buy_flatprice:多仓强平价格
+        buy_profit_lossratio:多仓盈亏比
+        buy_price_avg:开仓平均价
+        buy_price_cost:结算基准价
+        buy_profit_real:多仓已实现盈余
+        contract_id:合约id
+        contract_type:合约类型
+        create_date:创建日期
+        sell_amount:空仓数量
+        sell_available:空仓可平仓数量 
+        sell_bond:空仓保证金
+        sell_flatprice:空仓强平价格
+        sell_profit_lossratio:空仓盈亏比
+        sell_price_avg:开仓平均价
+        sell_price_cost:结算基准价
+        sell_profit_real:空仓已实现盈余
+        symbol:btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+        lever_rate: 杠杆倍数
+        """
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
@@ -218,6 +347,13 @@ class OKCoinAPI(OKCoinBase):
         return self._signed_request(params, res)
         
     def future_trades_history(self, symbol, date, since):
+        """return:
+        amount：交易数量
+        date：交易时间(毫秒)
+        price：交易价格
+        tid：交易ID
+        type：交易类型（buy/sell）
+        """
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
@@ -228,6 +364,12 @@ class OKCoinAPI(OKCoinBase):
         return self._signed_request(params, res)
 
     def future_cancel(self, symbol, order_id):
+        """return:
+        result:订单交易成功或失败(用于单笔订单)
+        order_id:订单ID(用于单笔订单)
+        success:成功的订单ID(用于多笔订单)
+        error:失败的订单ID后跟失败错误码(用户多笔订单)
+        """
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,
@@ -238,6 +380,13 @@ class OKCoinAPI(OKCoinBase):
         return self._signed_request(params, res)
 
     def future_explosive(self, symbol, status, current_page, page_number, page_length):
+        """return:
+        amount:委托数量（张）
+        create_date:创建时间
+        loss:穿仓用户亏损
+        price:委托价格
+        type：交易类型 1：买入开多 2：卖出开空 3：卖出平多 4：买入平空
+        """
         params = {
             'api_key': cfg.get_id(),
             'symbol': symbol,

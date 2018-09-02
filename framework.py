@@ -13,22 +13,32 @@ from collections import defaultdict
 
 class framework():
     def __init__(self):
-        self._plat = cfg.get_cfg_plat()
+        pass
 
     def get_all_pair(self):
         pairs = []
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_market_list()
                 pairs = [item.lower() for item in data]
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
-                pass
+            elif cfg.get_cfg_plat() == 'okex':
+                if cfg.is_future():
+                    coin1 = ['btc','ltc','eth','etc','bch','btg','xrp','eos']
+                    coin2 = ['usd']
+                else:
+                    coin1 = ['btc','eth','etc','bch','ltc','okb']
+                    coin2 = ['usdt', 'btc', 'eth','okb']
+                for i in coin1:
+                    for j in coin2:
+                        if i == j:
+                            continue
+                        else:
+                            pairs.append(i+"_"+j)
             else:
                 pass
-
         except:
             log.err("Exception on get_all_pair! data:%s"%data)
         return pairs
@@ -37,13 +47,13 @@ class framework():
         price = 0
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = s2f(cet.acquire_market_data(pair))
                 price = data['last']
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 #data = ft.get_market_ticker(pair)
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 data = okb.ticker(pair)
                 price = data['last']
             else:
@@ -57,7 +67,7 @@ class framework():
         price = defaultdict(lambda: None)
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_market_data(pair)
                 #price['buy'] = s2f(data['buy'])    #buy 1
                 #price['high'] = s2f(data['high'])  #24H highest price
@@ -66,10 +76,10 @@ class framework():
                 #price['sell'] = s2f(data['sell'])  #sell 1
                 #price['vol'] = s2f(data['vol'])    #24H volume
                 price = s2f(data)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 #data = ft.get_market_ticker(pair)
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 data = okb.ticker(pair)
                 price = data
             else:
@@ -82,12 +92,12 @@ class framework():
         prices = []
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_market_data_all()
                 prices = data
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -99,13 +109,13 @@ class framework():
         depth = defaultdict(lambda: None)
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_market_depth(pair)
                 depth['buy'] = s2f(data.pop('bids'))
                 depth['sell'] = s2f(data.pop('asks'))
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 data = okb.depth(pair)
                 depth['buy'] = data.pop('bids')
                 depth['sell'] = data.pop('asks')
@@ -119,15 +129,15 @@ class framework():
         kl = pd.DataFrame()
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_K_line_data(pair, dtype, limit)
                 if len(data) > 0:
                     for i in data:
                         i.pop()  ##remove the last market string
                 kl = pd.DataFrame(s2f(data), columns=['t','o', 'c','h', 'l', 'v', 'a'])
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 data = okb.kline(pair, dtype, limit)
                 kl = pd.DataFrame(data, columns = ['t', 'o', 'h', 'l', 'c', 'v', 'a'])
             else:
@@ -141,14 +151,14 @@ class framework():
         balance = defaultdict(lambda: None)
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.inquire_account_info()[symbol.upper()]
                 balance['available'] = s2f(data['available'])
                 balance['frozen'] = s2f(data['frozen'])
                 balance['balance'] = data['available'] + data['frozen']
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -161,16 +171,16 @@ class framework():
         balance = defaultdict(lambda: None)
         data = None
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.inquire_account_info()
                 for i in data.items():
                     balance[i[0]]['available'] = s2f(i[1]['available'])
                     balance[i[0]]['frozen'] = s2f(i[1]['frozen'])
                     balance[i[0]]['balance'] = s2f(i[1]['available']) + s2f(i[1]['frozen'])
                 #print(balance)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -182,11 +192,11 @@ class framework():
 
     def buy_limit(self, pair, price, amount):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 return cet.buy_limit(pair, amount, price)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -196,11 +206,11 @@ class framework():
 
     def sell_limit(self, pair, price, amount):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 return cet.sell_limit(pair, amount, price)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -210,11 +220,11 @@ class framework():
     
     def buy_market(self, pair, price, amount):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 return cet.buy_market(pair, amount, price)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -224,11 +234,11 @@ class framework():
             
     def sell_market(self, pair, price, amount):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 return cet.sell_market(pair, amount, price)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -238,14 +248,14 @@ class framework():
 
     def buy(self, pair, price, amount, buy_type):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 if buy_type == 'limit':
                     return cet.buy_limit(pair, amount, price)
                 elif buy_type == 'market':
                     return cet.buy_market(pair, amount, price)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -255,14 +265,14 @@ class framework():
 
     def sell(self, pair, price, amount, sell_type):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 if sell_type == 'limit':
                     return cet.sell_limit(pair, amount, price)
                 elif sell_type == 'market':
                     return cet.sell_market(pair, amount, price)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -270,21 +280,30 @@ class framework():
         except:
             log.err("Exception on sell!")
 
-    def trade(self, pair, trade_type, price, amount):
-        return True
+    def trade(self, pair, trade_type, price, amount, match_price): ##match_price mean limit(0) or market(1)
+        try:
+            if cfg.get_cfg_plat() == 'coinex':
+                pass
+            elif cfg.get_cfg_plat() == 'fcoin':
+                pass
+            elif cfg.get_cfg_plat() == 'okex':
+                pass
+            else:
+                pass
+        except:
+            log.err("Exception on sell!")
 
     def list_orders(self, pair):
         data = []
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_unfinished_order_list(pair)
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
-
         except:
             log.err("Exception on list_orders!")
         return data
@@ -292,16 +311,16 @@ class framework():
     
     def cancel_order(self, pair, id):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 status =  cet.cancel_order_list(pair, id)
                 #print(status)
                 if status != 'cancel':
                    return False
                 else:
                    return True
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -311,7 +330,7 @@ class framework():
 
     def cancel_order_pair(self, pair):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 order_list = self.list_orders(pair)
                 #print(order_list)
                 for i in range(len(order_list)):
@@ -321,9 +340,9 @@ class framework():
                     if status == False:
                         log.err("Fail cancel order id:%d status:%s"%(i['id'], status))
                 return status
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
@@ -333,16 +352,16 @@ class framework():
 
     def cancel_order_all(self):
         try:
-            if self._plat == 'coinex':
+            if cfg.get_cfg_plat() == 'coinex':
                 for i in self.get_all_pair():
                     status = self.cancel_order_pair(i)
                     if status == False:
                         log.err("Fail cancel order %s!"%i)
                         return False
                 return True
-            elif self._plat == 'fcoin':
+            elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif self._plat == 'okex':
+            elif cfg.get_cfg_plat() == 'okex':
                 pass
             else:
                 pass
