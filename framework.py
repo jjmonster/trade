@@ -369,7 +369,35 @@ class framework():
         except:
             log.err("Exception on cancel_order_all!")
 
+    def get_user_info(self):
+        info = defaultdict(lambda: None)
+        try:
+            if cfg.get_cfg_plat() == 'coinex':
+                pass
+            elif cfg.get_cfg_plat() == 'fcoin':
+                pass
+            elif cfg.get_cfg_plat() == 'okex':
+                info = okb.user_info()
+            else:
+                pass
+        except:
+            log.err("Exception on get_user_info!")
+        return info
 
+    def get_future_position(self):
+        pos = defaultdict(lambda: None)
+        try:
+            if cfg.get_cfg_plat() == 'coinex':
+                pass
+            elif cfg.get_cfg_plat() == 'fcoin':
+                pass
+            elif cfg.get_cfg_plat() == 'okex':
+                pos = okb.future_position()
+            else:
+                pass
+        except:
+            log.err("Exception on get_future_position!")
+        return pos
 
 fwk = framework()
 

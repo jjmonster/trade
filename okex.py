@@ -180,24 +180,41 @@ class OKCoinAPI(OKCoinBase):
     #######future and spot public
     def user_info(self):
         """return:
-        account_rights:账户权益
-        keep_deposit：保证金
-        profit_real：已实现盈亏
-        profit_unreal：未实现盈亏
-        risk_rate：保证金率
+        {
+            info:{
+                xxx:{
+                    account_rights:账户权益
+                    keep_deposit：保证金
+                    profit_real：已实现盈亏
+                    profit_unreal：未实现盈亏
+                    risk_rate：保证金率
+                }
+                ...
+            }
+            result:...
+        }
 
        or 4fix return:
-        
-        balance:账户余额
-        available:合约可用
-        balance:账户(合约)余额
-        bond:固定保证金
-        contract_id:合约ID
-        contract_type:合约类别
-        freeze:冻结
-        profit:已实现盈亏
-        unprofit:未实现盈亏
-        rights:账户权益
+        {
+            info:{
+                xxx:{
+                    balance:账户余额
+                    contracts:[{
+                        available:合约可用
+                        balance:账户(合约)余额
+                        bond:固定保证金
+                        contract_id:合约ID
+                        contract_type:合约类别
+                        freeze:冻结
+                        profit:已实现盈亏
+                        unprofit:未实现盈亏
+                    }]
+                    rights:账户权益
+                }
+                ...
+            }
+            result:...
+        }
         """
         params = {'api_key': cfg.get_id()}
         if cfg.is_future():
@@ -298,45 +315,56 @@ class OKCoinAPI(OKCoinBase):
     #####future private
     def future_position(self, symbol):
         """return:
-        buy_amount(double):多仓数量
-        buy_available:多仓可平仓数量
-        buy_price_avg(double):开仓平均价
-        buy_price_cost(double):结算基准价
-        buy_profit_real(double):多仓已实现盈余
-        contract_id(long):合约id
-        create_date(long):创建日期
-        lever_rate:杠杆倍数
-        sell_amount(double):空仓数量
-        sell_available:空仓可平仓数量
-        sell_price_avg(double):开仓平均价
-        sell_price_cost(double):结算基准价
-        sell_profit_real(double):空仓已实现盈余
-        symbol:btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
-        contract_type:合约类型
-        force_liqu_price:预估爆仓价
+        {
+            force_liqu_price:预估爆仓价
+            holding:[{
+                buy_amount(double):多仓数量
+                buy_available:多仓可平仓数量
+                buy_price_avg(double):开仓平均价
+                buy_price_cost(double):结算基准价
+                buy_profit_real(double):多仓已实现盈余
+                contract_id(long):合约id
+                create_date(long):创建日期
+                lever_rate:杠杆倍数
+                sell_amount(double):空仓数量
+                sell_available:空仓可平仓数量
+                sell_price_avg(double):开仓平均价
+                sell_price_cost(double):结算基准价
+                sell_profit_real(double):空仓已实现盈余
+                symbol:btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+                contract_type:合约类型
+            }]
+            result:...
+        }
+
 
        or 4fix return:
-        buy_amount:多仓数量
-        buy_available:多仓可平仓数量 
-        buy_bond:多仓保证金
-        buy_flatprice:多仓强平价格
-        buy_profit_lossratio:多仓盈亏比
-        buy_price_avg:开仓平均价
-        buy_price_cost:结算基准价
-        buy_profit_real:多仓已实现盈余
-        contract_id:合约id
-        contract_type:合约类型
-        create_date:创建日期
-        sell_amount:空仓数量
-        sell_available:空仓可平仓数量 
-        sell_bond:空仓保证金
-        sell_flatprice:空仓强平价格
-        sell_profit_lossratio:空仓盈亏比
-        sell_price_avg:开仓平均价
-        sell_price_cost:结算基准价
-        sell_profit_real:空仓已实现盈余
-        symbol:btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
-        lever_rate: 杠杆倍数
+       {
+            holding:[{
+                buy_amount:多仓数量
+                buy_available:多仓可平仓数量 
+                buy_bond:多仓保证金
+                buy_flatprice:多仓强平价格
+                buy_profit_lossratio:多仓盈亏比
+                buy_price_avg:开仓平均价
+                buy_price_cost:结算基准价
+                buy_profit_real:多仓已实现盈余
+                contract_id:合约id
+                contract_type:合约类型
+                create_date:创建日期
+                sell_amount:空仓数量
+                sell_available:空仓可平仓数量 
+                sell_bond:空仓保证金
+                sell_flatprice:空仓强平价格
+                sell_profit_lossratio:空仓盈亏比
+                sell_price_avg:开仓平均价
+                sell_price_cost:结算基准价
+                sell_profit_real:空仓已实现盈余
+                symbol:btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+                lever_rate: 杠杆倍数
+            }]
+            result:...
+        }
         """
         params = {
             'api_key': cfg.get_id(),

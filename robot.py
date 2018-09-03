@@ -23,13 +23,9 @@ class Robot():
         self.exchange = 0
         
         #variables for trade record
-        self.price_history = list() #time,price
-        self.trade_history = list() #time,type,price,amount
+        self.update_variables()
         self.trade_type = {'open_buy':1, 'open_sell':2, 'loss_buy':3, 'loss_sell':4, 'margin_buy':3,'margin_sell':4}
 
-        self.amount_hold = {'buy':0, 'sell':0, 'max':0}
-        self.profit = {'buy':0, 'sell':0}
-        self.runtime_profit = OrderedDict([('buy',0),('sell',0),('price',0)])
 
         #variables for technical indicator
         self.bbands = Bbands()
@@ -37,7 +33,7 @@ class Robot():
         self.stoch = Stoch()
 
         #variables for log print
-        self.depth_handle = 0
+        self.n_depth_handle = 0
 
         #variables for automatic running
         self.running = 0
@@ -45,78 +41,63 @@ class Robot():
         #variables for test back
         self.testing = False
 
-    def init_variables(self):
-        ###clear
-        self.depth_handle = 0
-        self.price_history = []
-        self.trade_history = []
-        for k in self.amount_hold.keys():
-            self.amount_hold[k] = 0
-        for k in self.profit.keys():
-            self.profit[k] = 0
-        for k in self.runtime_profit.keys():
-            self.runtime_profit[k] = 0
-        ###get balance
-        c1 = cfg.get_coin1()
-        c2 = cfg.get_coin2()
-        if self.simulate:
-            self.curr_fund = self.orig_fund = 1000
-            if cfg.is_future():
-                price = fwk.get_price(cfg.get_pair())
-                self.orig_balance[c1]['available'] = self.orig_fund/price
-                self.curr_balance = self.orig_balance
+    def update_variables(self, trade_param):
+        if trade_param == None:
+            self.n_depth_handle = 0
+            self.price_history = []
+            self.trade_history = []
+        plat = cfg.get_cfg_plat()
+        if plat == 'okex':
+            if self.simulate:
+                if trade_param == None:
+                    ##init
+                    self.user_info = {}
+                    if cfg.is_future():
+                        self.future_position = {}
+                else:
+                    ##update
+                    self.user_info = {}
+                    if cfg.is_future():
+                        self.future_position = {}
             else:
-                self.orig_balance[c2]['available'] = self.orig_fund
-                self.curr_balance = self.orig_balance
-        else:
-            self.curr_balance = self.orig_balance = {c1:fwk.get_balance(c1), c2:fwk.get_balance(c2)}
-            price = fwk.get_price(cfg.get_pair())
-            self.curr_fund = self.orig_fund = self.orig_balance[c1]['balance']*price + self.orig_balance[c2]['balance']
+                ##init or update directly
+                self.user_info = fwk.get_user_info()
+                if cfg.is_future():
+                    self.future_position = fwk.get_future_position(cfg.get_pair())
+        
+        elif plat == 'coinex':
+            c1 = cfg.get_coin1()
+            c2 = cfg.get_coin2()
+            if self.simulate:
+                if trade_param == None:
+                    ##init
+                    self.curr_fund = self.orig_fund = 1000
+                    self.orig_balance[c2]['available'] = self.orig_fund
+                    self.curr_balance = self.orig_balance
+                else:
+                    ##update
+                    self.curr_fund = self.orig_fund = 1000
+                    self.orig_balance[c2]['available'] = self.orig_fund
+                    self.curr_balance = self.orig_balance
+            else:
+                ##init or update directly
+                self.curr_balance = self.orig_balance = {c1:fwk.get_balance(c1), c2:fwk.get_balance(c2)}
+                price = fwk.get_price(cfg.get_pair())
+                self.curr_fund = self.orig_fund = self.orig_balance[c1]['balance']*price + self.orig_balance[c2]['balance']
 
-        if cfg.is_future:
-            self.amount_hold['max'] = self.curr_balance[c1]['available'] * 1
-
-    def update_balance(self): ####update balance after trade
-        c1 = cfg.get_coin1()
-        c2 = cfg.get_coin2()
-        if self.simulate:
-            pass
-            #if cfg.is_future():
-            #else:
-                #self.curr_balance[c1]['available'] = self.curr_balance[c1]['available'] + self.amount_hold
-        else:
-            self.curr_balance = {c1:fwk.get_balance(c1), c2:fwk.get_balance(c2)}
-
-        if cfg.is_future():
-            self.amount_hold['max'] = self.curr_balance[c1]['available'] * 1
-
-    def _trade(self,timestamp, type_key, price, amount):
+    def _trade(self,timestamp, type_key, price, amount, match_price=0):
         ttype = self.trade_type[type_key]
-        if fwk.trade(cfg.get_pair(), ttype, price, amount) == True:
-            if ttype == 1:
-               self.profit['buy'] -= price*amount 
-               self.amount_hold['buy'] += amount
-            elif ttype == 2:
-                self.profit['sell'] -= price*amount
-                self.amount_hold['sell'] += amount
-            elif ttype == 3:
-                self.profit['buy'] += price*amount
-                self.amount_hold['buy'] -= amount
-            elif ttype == 4:
-                self.profit['sell'] += price*amount
-                self.amount_hold['sell'] -= amount
-
+        if fwk.trade(cfg.get_pair(), ttype, price, amount, match_price) == True:
             ##record the trade history
+            trade_param = [timestamp, type_key, price, amount, match_price]
             if len(self.trade_history) > 100:
                 self.trade_history.pop(0)
             else:
-                self.trade_history.append([timestamp, type_key, price, amount])
+                self.trade_history.append(trade_param)
             #log.info("trade history: %s"%(self.trade_history))
-            tl = [timestamp, type_key, price, amount]
-            hist.info("%s"%tl)
-            sslot.trade_log(tl)
-
-            self.update_balance()
+            hist.info("%s"%trade_param)
+            sslot.trade_log(trade_param)
+            self.update_variables(trade_param)
         
     def trade(self, timestamp, signal, bp, ba, sp, sa):
         price = amount = 0
@@ -153,8 +134,8 @@ class Robot():
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
         sa = depth['sell'][0][1] #amount sell
-        self.depth_handle += 1
-        if self.depth_handle%60 == 0:
+        self.n_depth_handle += 1
+        if self.n_depth_handle%60 == 0:
             ##log runtime profit
             self.runtime_profit['buy'] = round(self.profit['buy'] + self.amount_hold['buy']*bp, 2)
             self.runtime_profit['sell'] = round(-(self.profit['sell'] + self.amount_hold['sell']*sp), 2) ##sell ticket have inverted profit
@@ -182,7 +163,7 @@ class Robot():
         else:
             signal = 'None'
         #log.dbg("get signal! %s"%signal)
-        self.trade(timestamp, signal, bp, ba, sp, sa)
+        self.trade(timestamp, signal, bp, ba, sp, sa, 0)
 
     def start(self):
         if self.running == 0:
