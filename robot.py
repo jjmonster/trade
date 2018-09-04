@@ -102,6 +102,26 @@ class Robot():
     def trade(self, timestamp, signal, bp, ba, sp, sa):
         price = amount = 0
         if signal == 'buy':
+            if cfg.get_cfg_plat() == 'okex':
+                if cfg.is_future():
+                    if self.future_position['sell_amount'] > 0:
+                        #orders = fwk.list_orders(cfg.get_pair(), -1, 1) #
+                        #if len(orders) > 0:
+                        #    for o in orders:
+                        #        if o['type'] == self.trade_type['margin_sell']:
+                                
+                         
+                        type_key = 'margin_sell':
+                        price = sp
+                        amount = min(sa, self.future_position['sell_amount'])
+                    elif self.future_position['buy_amount'] > 0:
+                        if 
+                        type_key = 'open_buy'
+                        
+                    else:
+                        type_key = 'open_buy'
+                    
+                
             if self.amount_hold['sell'] > 0:
                 type_key = 'margin_sell'
                 a = self.amount_hold['sell']

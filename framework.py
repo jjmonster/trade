@@ -293,15 +293,15 @@ class framework():
         except:
             log.err("Exception on sell!")
 
-    def list_orders(self, pair):
+    def list_orders(self, pair, *params):
         data = []
         try:
             if cfg.get_cfg_plat() == 'coinex':
                 data = cet.acquire_unfinished_order_list(pair)
             elif cfg.get_cfg_plat() == 'fcoin':
                 pass
-            elif cfg.get_cfg_plat() == 'okex':
-                pass
+            elif cfg.get_cfg_plat() == 'okex' and len(params) == 2:
+                data = okb.order_info(pair, *params)
             else:
                 pass
         except:

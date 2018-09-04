@@ -198,14 +198,14 @@ class OKCoinAPI(OKCoinBase):
         {
             info:{
                 xxx:{
-                    balance:账户余额
+                    balance:账户余额(可用保证金)
                     contracts:[{
-                        available:合约可用
+                        available:合约可用(可用保证金)
                         balance:账户(合约)余额
-                        bond:固定保证金
+                        bond:固定保证金(已用保证金)
                         contract_id:合约ID
                         contract_type:合约类别
-                        freeze:冻结
+                        freeze:冻结保证金
                         profit:已实现盈亏
                         unprofit:未实现盈亏
                     }]
@@ -222,7 +222,7 @@ class OKCoinAPI(OKCoinBase):
         else:
             res = OKCoinBase.RESOURCES_URL['user_info']
         ret = self._signed_request(params, res)
-        if ret['result'] == "true":
+        if ret['result'] == "True":
             return ret['info']
         else:
             return None
@@ -245,7 +245,7 @@ class OKCoinAPI(OKCoinBase):
             params['lever_rate'] = 10
         res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
-        if ret['result'] == "true":
+        if ret['result'] == "True":
             return ret['order_id']
         else:
             return False
@@ -262,21 +262,31 @@ class OKCoinAPI(OKCoinBase):
         res = OKCoinBase.RESOURCES_URL['batch_trade'].format('future_' if cfg.is_future() else '')
         return self._signed_request(params, res)
 
-    def order_info(self, symbol, order_id, status, current_page, page_length):
-        """return:
-        amount: 委托数量
-        contract_name: 合约名称
-        create_date: 委托时间
-        deal_amount: 成交数量
-        fee: 手续费
-        order_id: 订单ID
-        price: 订单价格
-        price_avg: 平均价格
-        status: 订单状态(0等待成交 1部分成交 2全部成交 -1撤单 4撤单处理中 5撤单中)
-        symbol: btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
-        type: 订单类型 1：开多 2：开空 3：平多 4： 平空
-        unit_amount:合约面值
-        lever_rate: 杠杆倍数  value:10\20  默认10 
+    def order_info(self, symbol, order_id, status, current_page=1, page_length=50):
+        """params:
+            status	String	否	查询状态 1:未完成的订单 2:已经完成的订单
+            order_id	String	是	订单ID -1:查询指定状态的订单，否则查询相应订单号的订单
+            current_page	String	否	当前页数
+            page_length	String	否	每页获取条数，最多不超过50
+        return:
+        {
+            orders:[{
+                amount: 委托数量
+                contract_name: 合约名称
+                create_date: 委托时间
+                deal_amount: 成交数量
+                fee: 手续费
+                order_id: 订单ID
+                price: 订单价格
+                price_avg: 平均价格
+                status: 订单状态(0等待成交 1部分成交 2全部成交 -1撤单 4撤单处理中 5撤单中)
+                symbol: btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+                type: 订单类型 1：开多 2：开空 3：平多 4： 平空
+                unit_amount:合约面值
+                lever_rate: 杠杆倍数  value:10\20  默认10 
+            }]
+            result:...
+        }
         """
         params = {
             'api_key': cfg.get_id(),
@@ -290,7 +300,7 @@ class OKCoinAPI(OKCoinBase):
             params['contract_type'] = cfg.get_future_contract_type()
         res = OKCoinBase.RESOURCES_URL['order_info'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
-        if ret['result'] == "true":
+        if ret['result'] == "True":
             return ret['orders']
         else:
             return None
@@ -306,7 +316,7 @@ class OKCoinAPI(OKCoinBase):
             params['contract_type'] = cfg.get_future_contract_type()
         res = OKCoinBase.RESOURCES_URL['orders_info'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
-        if ret['result'] == "true":
+        if ret['result'] == "True":
             return ret['orders']
         else:
             return None
@@ -372,7 +382,11 @@ class OKCoinAPI(OKCoinBase):
             'contract_type':cfg.get_future_contract_type()
         }
         res = OKCoinBase.RESOURCES_URL['position' if cfg.is_future_mode_all() else 'position_4fix']
-        return self._signed_request(params, res)
+        ret = self._signed_request(params, res)
+        if ret['result'] == "True":
+            return ret['holding'][0]
+        else:
+            return None
         
     def future_trades_history(self, symbol, date, since):
         """return:
