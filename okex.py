@@ -246,7 +246,7 @@ class OKCoinAPI(OKCoinBase):
         res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
         if ret['result'] == "True":
-            return ret['order_id']
+            return True ##ret['order_id']
         else:
             return False
 

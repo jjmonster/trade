@@ -287,7 +287,7 @@ class framework():
             elif cfg.get_cfg_plat() == 'fcoin':
                 pass
             elif cfg.get_cfg_plat() == 'okex':
-                pass
+                return okb.trade(pair, trade_type, price, amount, match_price)
             else:
                 pass
         except:
@@ -384,7 +384,7 @@ class framework():
             log.err("Exception on get_user_info!")
         return info
 
-    def get_future_position(self):
+    def get_future_position(self, pair):
         pos = defaultdict(lambda: None)
         try:
             if cfg.get_cfg_plat() == 'coinex':
@@ -392,7 +392,7 @@ class framework():
             elif cfg.get_cfg_plat() == 'fcoin':
                 pass
             elif cfg.get_cfg_plat() == 'okex':
-                pos = okb.future_position()
+                pos = okb.future_position(pair)
             else:
                 pass
         except:

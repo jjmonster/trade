@@ -102,8 +102,9 @@ class windows:
         pair_opt = fwk.get_all_pair()
         idx = pair_opt.index(cfg.get_pair())
         self.add_frame_combobox(parent, pair_opt, idx, self.pair_select, side=LEFT)
-        _opt = ['1','2']
-        self.add_frame_combobox(parent, _opt, 0, self._select, side=LEFT)
+        future_or_spot_opt = ['future','spot']
+        idx = 0 if cfg.is_future() else 1
+        self.add_frame_combobox(parent, future_or_spot_opt, 0, self.future_or_spot_select, side=LEFT)
 
     def add_frame_combobox(self, parent, options, index, func, **params):
         f = Frame(parent, height=80, width=100)
@@ -126,9 +127,9 @@ class windows:
         pair = event.widget.get()
         sslot.pair_select(pair)
 
-    def _select(self, event):
-        other = event.widget.get()
-        sslot.other_select(other)
+    def future_or_spot_select(self, event):
+        future_or_spot = event.widget.get()
+        sslot.future_or_spot_select(future_or_spot)
 
     def tab_layout(self, parent):
         tabs=OrderedDict([("分析",None), ("行情",None), ("交易",None), ("机器人",None), ("debug", None)])
@@ -187,7 +188,7 @@ class AnalysisTab():
         sslot.register_indicator_select(self.indicator_select)
         sslot.register_plat_select(self.plat_select)
         sslot.register_pair_select(self.pair_select)
-        sslot.register_other_select(self._select)
+        sslot.register_future_or_spot_select(self.future_or_spot_select)
 
     def draw(self):
         self.fig.clf()
@@ -246,7 +247,7 @@ class AnalysisTab():
     def pair_select(self, pair):
         pass
 
-    def _select(self, other):
+    def future_or_spot_select(self, future_or_spot):
         pass
 
     def exit(self):
@@ -260,7 +261,7 @@ class AnalysisTab():
         sslot.unregister_indicator_select(self.indicator_select)
         sslot.unregister_plat_select(self.plat_select)
         sslot.unregister_pair_select(self.pair_select)
-        sslot.unregister_other_select(self._select)
+        sslot.unregister_future_or_spot_select(self._select)
 
 
 
@@ -281,7 +282,7 @@ class MarketTab():
     def pair_select(self, event):
         pass
 
-    def _select(self, event):
+    def future_or_spot_select(self, event):
         pass
 
     def exit(self):
@@ -305,7 +306,7 @@ class TradeTab():
     def pair_select(self, event):
         pass
 
-    def _select(self, event):
+    def future_or_spot_select(self, event):
         pass
 
     def exit(self):
@@ -325,19 +326,21 @@ class RobotTab():
 
         ########
         lf = LabelFrame(parent, text='Status')
-        lf1 = LabelFrame(lf, text='profit',labelanchor=W)
-        self.profitlist = {}
-        for i in self.rbt.runtime_profit.keys():
-            self.profitlist[i] = Label(lf1, text=i+': '+str(self.rbt.runtime_profit[i]), width=20)
-            self.profitlist[i].pack()
+        lf1 = LabelFrame(lf, text='user_info',labelanchor=W)
+        self.infolist = {}
+        for i in self.rbt.user_info.keys():
+            self.infolist[i] = Label(lf1, text=i+': '+str(self.rbt.user_info[i]), width=20)
+            self.infolist[i].pack()
         lf1.pack(side=TOP,fill=X, expand=YES)
 
-        lf2 = LabelFrame(lf, text='amount',labelanchor=W)
-        self.amountlist = {}
-        for i in self.rbt.amount_hold.keys():
-            self.amountlist[i] = Label(lf2, text=i+': '+str(self.rbt.amount_hold[i]), width=20)
-            self.amountlist[i].pack()
-        lf2.pack(side=TOP,fill=X, expand=YES)
+        if cfg.is_future():
+            lf2 = LabelFrame(lf, text='position',labelanchor=W)
+            self.positionlist = {}
+            for i in self.rbt.future_position.keys():
+                self.positionlist[i] = Label(lf2, text=i+': '+str(self.rbt.future_position[i]), width=20)
+                self.positionlist[i].pack()
+            lf2.pack(side=TOP,fill=X, expand=YES)
+
         lf.pack(side=LEFT,fill=BOTH, expand=YES)
 
         #########
@@ -368,10 +371,10 @@ class RobotTab():
     def handle_robot_log(self, msg):
         self.scr.insert(END, msg+'\n')
         self.scr.see(END)
-        for i in self.rbt.runtime_profit.keys():
-            self.profitlist[i].config(text=i+':'+str(self.rbt.runtime_profit[i]))
-        for i in self.rbt.amount_hold.keys():
-            self.amountlist[i].config(text=i+':'+str(self.rbt.amount_hold[i]))
+#        for i in self.rbt.runtime_profit.keys():
+#            self.profitlist[i].config(text=i+':'+str(self.rbt.runtime_profit[i]))
+#        for i in self.rbt.amount_hold.keys():
+#            self.amountlist[i].config(text=i+':'+str(self.rbt.amount_hold[i]))
 
     def indicator_select(self, indicator):
         pass
@@ -382,7 +385,7 @@ class RobotTab():
     def pair_select(self, event):
         pass
 
-    def _select(self, event):
+    def future_or_spot_select(self, event):
         pass
 
     def exit(self):
@@ -428,7 +431,7 @@ class DebugTab():
     def pair_select(self, event):
         pass
 
-    def _select(self, event):
+    def future_or_spot_select(self, event):
         pass
 
     def exit(self):

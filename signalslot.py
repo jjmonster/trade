@@ -53,14 +53,14 @@ class SignalSlotInterface(SignalSlot):
         return self.emit('pair', pair)
 
     #############
-    def register_other_select(self, func):
-        return self.connect('other', func)
+    def register_future_or_spot_select(self, func):
+        return self.connect('future_or_spot', func)
 
-    def unregister_other_select(self, func):
-        return self.disconnect('other', func)
+    def unregister_future_or_spot_select(self, func):
+        return self.disconnect('future_or_spot', func)
 
-    def other_select(self, other):
-        return self.emit('other', other)
+    def future_or_spot_select(self, other):
+        return self.emit('future_or_spot', other)
 
     #############
     def register_robot_log(self, func):

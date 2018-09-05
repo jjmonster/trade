@@ -19,6 +19,7 @@ class config:
         sslot.register_plat_select(self.set_url)
         sslot.register_pair_select(self.set_pair)
         sslot.register_indicator_select(self.set_indicator)
+        sslot.register_future_or_spot_select(self.set_future_or_spot)
 
     def write_file(self):
         with open(self.cf, 'w') as f:
@@ -137,6 +138,9 @@ class config:
 
     def set_indicator(self, val):
         self.set_cfg('indicator', val)
+
+    def set_future_or_spot(self, val):
+        self.setcfg('public', val)
 
     def get_fee(self):
         return self.get_cfg_item('public','fee_percentage', 'float')
