@@ -13,47 +13,47 @@ import time
 
 class Robot():
     def __init__(self):
-        self.simulate = True
+        self.simulate = False
 
         if cfg.is_future():
             self.orig_user_info = {
                 cfg.get_coin1():{
-                    'balance':0            #账户余额(可用保证金)
+                    'balance':0,            #账户余额(可用保证金)
                     'contracts':[{
-                        'available':0      #合约可用(可用保证金)
-                        'balance':0        #账户(合约)余额
-                        'bond':0           #固定保证金(已用保证金)
-                        'contract_id':0    #合约ID
-                        'contract_type':0   #合约类别
-                        'freeze':0          #冻结保证金
-                        'profit':0          #已实现盈亏
-                        'unprofit':0        #未实现盈亏
-                    }]
-                    'rights':0              #账户权益
+                        'available':0,      #合约可用(可用保证金)
+                        'balance':0,        #账户(合约)余额
+                        'bond':0,           #固定保证金(已用保证金)
+                        'contract_id':0,    #合约ID
+                        'contract_type':0,   #合约类别
+                        'freeze':0,          #冻结保证金
+                        'profit':0,          #已实现盈亏
+                        'unprofit':0,        #未实现盈亏
+                    }],
+                    'rights':0,              #账户权益
                 }
             }
             self.orig_future_position = {
-                'buy_amount':0                #多仓数量
-                'buy_available':0            #多仓可平仓数量 
-                'buy_bond':0                 #多仓保证金
-                'buy_flatprice':0            #多仓强平价格
-                'buy_profit_lossratio':0     #多仓盈亏比
-                'buy_price_avg':0            #开仓平均价
-                'buy_price_cost':0           #结算基准价
-                'buy_profit_real':0          #多仓已实现盈余
-                'contract_id':0              #合约id
-                'contract_type':0            #合约类型
-                'create_date':0              #创建日期
-                'sell_amount':0              #空仓数量
-                'sell_available':0           #空仓可平仓数量 
-                'sell_bond':0                #空仓保证金
-                'sell_flatprice':0           #空仓强平价格
-                'sell_profit_lossratio':0    #空仓盈亏比
-                'sell_price_avg':0           #开仓平均价
-                'sell_price_cost':0          #结算基准价
-                'sell_profit_real':0         #空仓已实现盈余
-                'symbol':cfg.get_pair()      #btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
-                'lever_rate':0               #杠杆倍数
+                'buy_amount':0,                #多仓数量
+                'buy_available':0,            #多仓可平仓数量 
+                'buy_bond':0,                 #多仓保证金
+                'buy_flatprice':0,            #多仓强平价格
+                'buy_profit_lossratio':0,     #多仓盈亏比
+                'buy_price_avg':0,            #开仓平均价
+                'buy_price_cost':0,           #结算基准价
+                'buy_profit_real':0,          #多仓已实现盈余
+                'contract_id':0,              #合约id
+                'contract_type':0,            #合约类型
+                'create_date':0,              #创建日期
+                'sell_amount':0,              #空仓数量
+                'sell_available':0,           #空仓可平仓数量 
+                'sell_bond':0,                #空仓保证金
+                'sell_flatprice':0,           #空仓强平价格
+                'sell_profit_lossratio':0,    #空仓盈亏比
+                'sell_price_avg':0,           #开仓平均价
+                'sell_price_cost':0,          #结算基准价
+                'sell_profit_real':0,         #空仓已实现盈余
+                'symbol':cfg.get_pair(),      #btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
+                'lever_rate':0,               #杠杆倍数
             }
             
         #variables for mine
@@ -64,7 +64,7 @@ class Robot():
         self.exchange = 0
         
         #variables for trade record
-        self.update_variables()
+        #self.update_variables()
         self.trade_type = {'open_buy':1, 'open_sell':2, 'loss_buy':3, 'loss_sell':4, 'margin_buy':3,'margin_sell':4}
 
 
@@ -154,6 +154,7 @@ class Robot():
                 if cfg.is_future():
                     self.user_info = fwk.get_user_info()
                     self.future_position = fwk.get_future_position(cfg.get_pair())
+                    log.dbg("update_variables... user_info:%s future_position:%s"%(self.user_info, self.future_position))
                 else:
                     pass
 
@@ -162,7 +163,7 @@ class Robot():
         if self.simulate:
             ret = True
         else:
-            ret = fwk.trade(cfg.get_pair(), ttype, price, amount, match_price)
+            ret = True #fwk.trade(cfg.get_pair(), ttype, price, amount, match_price)
         if ret == True:
             ##record the trade history
             trade_param = [timestamp, type_key, price, amount, match_price]
@@ -184,7 +185,7 @@ class Robot():
                         price = sp
                         amount = min(sa, self.future_position['sell_available'])
                     else:
-                        contracts = self.user_info[self.get_coin1()]['contracts']
+                        contracts = self.user_info[cfg.get_coin1()]['contracts'][0]
                         a = contracts['available'] - (contracts['available'] + contracts['bond']) * 0.9
                         if a > 0:
                             price = sp
@@ -257,8 +258,8 @@ class Robot():
             signal = self.stoch.sig
         else:
             signal = 'standby'
-        #log.dbg("get signal! %s"%signal)
-        self.trade(timestamp, signal, bp, ba, sp, sa, 0)
+        log.dbg("get signal! %s"%signal)
+        self.trade(timestamp, signal, bp, ba, sp, sa)
 
     def start(self):
         if self.running == 0:
@@ -284,6 +285,7 @@ class Robot():
 
     def testback(self):
         self.testing = True
+        self.update_variables()
         days = 10
         kl_1hour = fwk.get_kline(cfg.get_pair(), dtype="1hour", limit=min(days*24, 2000))
         if kl_1hour.size > 0:

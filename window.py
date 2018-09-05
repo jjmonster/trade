@@ -261,7 +261,7 @@ class AnalysisTab():
         sslot.unregister_indicator_select(self.indicator_select)
         sslot.unregister_plat_select(self.plat_select)
         sslot.unregister_pair_select(self.pair_select)
-        sslot.unregister_future_or_spot_select(self._select)
+        sslot.unregister_future_or_spot_select(self.future_or_spot_select)
 
 
 
@@ -326,20 +326,27 @@ class RobotTab():
 
         ########
         lf = LabelFrame(parent, text='Status')
-        lf1 = LabelFrame(lf, text='user_info',labelanchor=W)
-        self.infolist = {}
-        for i in self.rbt.user_info.keys():
-            self.infolist[i] = Label(lf1, text=i+': '+str(self.rbt.user_info[i]), width=20)
-            self.infolist[i].pack()
-        lf1.pack(side=TOP,fill=X, expand=YES)
-
         if cfg.is_future():
-            lf2 = LabelFrame(lf, text='position',labelanchor=W)
-            self.positionlist = {}
-            for i in self.rbt.future_position.keys():
-                self.positionlist[i] = Label(lf2, text=i+': '+str(self.rbt.future_position[i]), width=20)
-                self.positionlist[i].pack()
-            lf2.pack(side=TOP,fill=X, expand=YES)
+            lf1 = LabelFrame(lf, text='user_info',labelanchor=W)
+            self.infolist = {}
+            c1_info = self.rbt.user_info[cfg.get_coin1()]
+            for i in c1_info.keys():
+                if i == 'contracts':
+                    for j in c1_info[i][0].keys():
+                        self.infolist[j] =  Label(lf1, text=j+': '+str(c1_info[i][0][j]), width=20)
+                        self.infolist[j].pack()
+                else:
+                    self.infolist[i] = Label(lf1, text=i+': '+str(c1_info[i]), width=20)
+                    self.infolist[i].pack()
+            lf1.pack(side=TOP,fill=X, expand=YES)
+
+            if cfg.is_future():
+                lf2 = LabelFrame(lf, text='position',labelanchor=W)
+                self.positionlist = {}
+                for i in self.rbt.future_position.keys():
+                    self.positionlist[i] = Label(lf2, text=i+': '+str(self.rbt.future_position[i]), width=20)
+                    self.positionlist[i].pack()
+                lf2.pack(side=TOP,fill=X, expand=YES)
 
         lf.pack(side=LEFT,fill=BOTH, expand=YES)
 

@@ -222,9 +222,10 @@ class OKCoinAPI(OKCoinBase):
         else:
             res = OKCoinBase.RESOURCES_URL['user_info']
         ret = self._signed_request(params, res)
-        if ret['result'] == "True":
+        if ret['result'] == True:
             return ret['info']
         else:
+            log.err("user_info ret:%s"%ret)
             return None
 
     def trade(self, symbol, price, amount, trade_type, match_price):
@@ -245,7 +246,7 @@ class OKCoinAPI(OKCoinBase):
             params['lever_rate'] = 10
         res = OKCoinBase.RESOURCES_URL['trade'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
-        if ret['result'] == "True":
+        if ret['result'] == True:
             return True ##ret['order_id']
         else:
             return False
@@ -300,7 +301,7 @@ class OKCoinAPI(OKCoinBase):
             params['contract_type'] = cfg.get_future_contract_type()
         res = OKCoinBase.RESOURCES_URL['order_info'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
-        if ret['result'] == "True":
+        if ret['result'] == True:
             return ret['orders']
         else:
             return None
@@ -316,7 +317,7 @@ class OKCoinAPI(OKCoinBase):
             params['contract_type'] = cfg.get_future_contract_type()
         res = OKCoinBase.RESOURCES_URL['orders_info'].format('future_' if cfg.is_future() else '')
         ret = self._signed_request(params, res)
-        if ret['result'] == "True":
+        if ret['result'] == True:
             return ret['orders']
         else:
             return None
@@ -383,9 +384,10 @@ class OKCoinAPI(OKCoinBase):
         }
         res = OKCoinBase.RESOURCES_URL['position' if cfg.is_future_mode_all() else 'position_4fix']
         ret = self._signed_request(params, res)
-        if ret['result'] == "True":
+        if ret['result'] == True:
             return ret['holding'][0]
         else:
+            log.err("future_position ret:%s"%ret)
             return None
         
     def future_trades_history(self, symbol, date, since):
@@ -478,7 +480,7 @@ class OKCoinAPI(OKCoinBase):
 okb = OKCoinAPI()
 
 if __name__ == '__main__':
-    print(okb.ticker(cfg.get_pair()))
+    #print(okb.ticker(cfg.get_pair()))
     #print(okb.depth(cfg.get_pair(), 5, 0))
     #print(okb.kline(cfg.get_pair(), '1hour', 10))
     #print(okb.trades(cfg.get_pair()))
