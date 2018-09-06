@@ -12,10 +12,6 @@ class config:
         self.cp = configparser.ConfigParser()
         self.cp.read(cfg_file, encoding="utf-8")
 
-        plt = self.get_cfg_plat()
-        if plt != 'okex' and plt != 'okcoin':
-            self.set_cfg('future_or_spot','spot')
-
         sslot.register_plat_select(self.set_url)
         sslot.register_pair_select(self.set_pair)
         sslot.register_indicator_select(self.set_indicator)
@@ -77,7 +73,21 @@ class config:
         return self.get_url().split('.')[1]
 
     def get_cfg_header(self):
-        return self.get_cfg_section('request_header')
+        #return self.get_cfg_section('request_header')
+        plt = self.get_cfg_plat()
+        if plt == 'okex' or plt == 'okcoin':
+            headers = {
+                'Content-Type':'application/x-www-form-urlencoded'
+            }
+        elif plt == 'coinex':
+            headers = {
+                'Content-Type':'application/json',
+                'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36',
+                'authorization':''
+            }
+        else:
+            headers = {}
+        return headers
 
     def set_cfg_header(self):
         plt = self.get_cfg_plat()
@@ -108,8 +118,10 @@ class config:
         self.set_cfg('coin1', val)
 
     def get_coin2(self):
-        if self.is_future():
-            return 'usd'
+        plt = self.get_cfg_plat()
+        if plt == 'okex' or plt == 'okcoin':
+            if self.is_future():
+                return 'usd'
         return self.get_cfg_item('public','coin2')
 
     def set_coin2(self, val):
@@ -153,10 +165,10 @@ class config:
         return self.get_cfg_item('future','future_contract_type')
 
     def get_future_buy_lever(self):
-        return self.get_cfg_item('future','future_buy_lever')
+        return self.get_cfg_item('future','future_buy_lever', 'int')
 
     def get_future_sell_lever(self):
-        return self.get_cfg_item('future','future_sell_lever')
+        return self.get_cfg_item('future','future_sell_lever', 'int')
 
     def get_future_mode_all_or_every(self):
         return self.get_cfg_item('future','future_mode_all_or_every')

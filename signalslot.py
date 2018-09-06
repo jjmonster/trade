@@ -73,13 +73,23 @@ class SignalSlotInterface(SignalSlot):
         return self.emit('robotlog', log)
 
     #############
-    def register_trade_log(self, func):
-        return self.connect('tradelog', func)
+    def register_robot_status(self, func):
+        return self.connect('robotstat', func)
 
-    def unregister_trade_log(self, func):
-        return self.disconnect('tradelog', func)
+    def unregister_robot_status(self, func):
+        return self.disconnect('robotstat', func)
 
-    def trade_log(self, log):
-        return self.emit('tradelog', log)
+    def robot_status(self, status):
+        return self.emit('robotstat', status)
+
+    #############
+    def register_trade_history(self, func):
+        return self.connect('tradehist', func)
+
+    def unregister_trade_history(self, func):
+        return self.disconnect('tradehist', func)
+
+    def trade_history(self, hist):
+        return self.emit('tradehist', hist)
 
 sslot = SignalSlotInterface()

@@ -13,14 +13,14 @@ import time
 
 class Robot():
     def __init__(self):
-        self.simulate = False
+        self.simulate = True
 
         if cfg.is_future():
-            self.orig_user_info = {
+            self.user_info = {
                 cfg.get_coin1():{
                     'balance':0,            #账户余额(可用保证金)
                     'contracts':[{
-                        'available':0,      #合约可用(可用保证金)
+                        'available':100,      #合约可用(可用保证金)
                         'balance':0,        #账户(合约)余额
                         'bond':0,           #固定保证金(已用保证金)
                         'contract_id':0,    #合约ID
@@ -32,7 +32,7 @@ class Robot():
                     'rights':0,              #账户权益
                 }
             }
-            self.orig_future_position = {
+            self.future_position = {
                 'buy_amount':0,                #多仓数量
                 'buy_available':0,            #多仓可平仓数量 
                 'buy_bond':0,                 #多仓保证金
@@ -53,7 +53,7 @@ class Robot():
                 'sell_price_cost':0,          #结算基准价
                 'sell_profit_real':0,         #空仓已实现盈余
                 'symbol':cfg.get_pair(),      #btc_usd   ltc_usd    eth_usd    etc_usd    bch_usd
-                'lever_rate':0,               #杠杆倍数
+                'lever_rate':cfg.get_future_buy_lever()    #杠杆倍数
             }
             
         #variables for mine
@@ -90,62 +90,67 @@ class Robot():
         else:
             if self.trade_history.index.size > 100:
                 self.trade_history = self.trade_history.drop(0)
-            else:
-                self.trade_history.loc[self.trade_history.index.size] = trade_param[0]
+            self.trade_history.loc[self.trade_history.index.size] = trade_param[0]
+            if self.testing == False:
+                sslot.trade_history(self.trade_history)
 
         if self.simulate:
             if len(trade_param) == 0: ###init
-                if cfg.is_future():
-                    self.user_info = self.orig_user_info
-                    self.future_position = self.orig_future_position
+                pass
             else: ##update
                 param = self.trade_history.iloc[-1]
+                a = param['amount'] * (1-0.001) ##take off trans fee
+                c1 = cfg.get_coin1()
                 if param['type'] == 'open_buy':
                     if cfg.is_future():
-                        a = param['amount'] * (1-0.001) ##take off trans fee
                         oldfund = self.future_position['buy_amount'] * self.future_position['buy_price_avg']
                         newfund = a * param['price']
                         self.future_position['buy_amount'] += a
                         self.future_position['buy_available'] += a
                         self.future_position['buy_price_avg'] = (oldfund + newfund) / self.future_position['buy_amount']
-                        self.future_position['buy_bond'] += a/cfg.get_future_buy_lever()
+                        self.future_position['buy_bond'] += a/self.future_position['lever_rate']
 
-                        self.user_info[self.get_coin1()]['contracts']['available'] -= param['amount']/cfg.get_future_buy_lever()
-                        self.user_info[self.get_coin1()]['contracts']['bond'] += a/cfg.get_future_buy_lever()
+                        self.user_info[c1]['contracts'][0]['available'] -= param['amount']/self.future_position['lever_rate']
+                        self.user_info[c1]['contracts'][0]['bond'] += a/self.future_position['lever_rate']
 
                 if param['type'] == 'margin_buy':
                     if cfg.is_future():
                         self.future_position['buy_amount'] -= param['amount']
                         self.future_position['buy_available'] -= param['amount']
-                        self.future_position['buy_bond'] -= param['amount']/cfg.get_future_buy_lever()
+                        self.future_position['buy_bond'] -= param['amount']/self.future_position['lever_rate']
 
-                        self.user_info[self.get_coin1()]['contracts']['available'] += param['amount']/cfg.get_future_buy_lever()
-                        self.user_info[self.get_coin1()]['contracts']['bond'] -= param['amount']/cfg.get_future_buy_lever()
-                        profit = (param['price'] - self.future_position['buy_price_avg']) * param['amount']
-                        self.user_info[self.get_coin1()]['contracts']['profit'] += profit
+                        self.user_info[c1]['contracts'][0]['available'] += a/self.future_position['lever_rate']
+                        self.user_info[c1]['contracts'][0]['bond'] -= param['amount']/self.future_position['lever_rate']
+                        profit = (param['price'] - self.future_position['buy_price_avg'])/self.future_position['buy_price_avg'] * a
+                        self.user_info[c1]['contracts'][0]['profit'] += profit
+                        self.user_info[c1]['contracts'][0]['available'] += profit
 
                 if param['type'] == 'open_sell':
                     if cfg.is_future():
                         oldfund = self.future_position['sell_amount'] * self.future_position['sell_price_avg']
                         newfund = param['amount'] * param['price']
-                        self.future_position['sell_amount'] += param['amount']
-                        self.future_position['sell_available'] += param['amount']
+                        self.future_position['sell_amount'] += a
+                        self.future_position['sell_available'] += a
                         self.future_position['sell_price_avg'] = (oldfund + newfund) / self.future_position['sell_amount']
-                        self.future_position['sell_bond'] += param['amount']/cfg.get_future_buy_lever()
+                        self.future_position['sell_bond'] += a/self.future_position['lever_rate']
 
-                        self.user_info[self.get_coin1()]['contracts']['available'] -= param['amount']/cfg.get_future_buy_lever()
-                        self.user_info[self.get_coin1()]['contracts']['bond'] += param['amount']/cfg.get_future_buy_lever()
+                        self.user_info[c1]['contracts'][0]['available'] -= param['amount']/self.future_position['lever_rate']
+                        self.user_info[c1]['contracts'][0]['bond'] += a/self.future_position['lever_rate']
 
                 if param['type'] == 'margin_sell':
                     if cfg.is_future():
                         self.future_position['sell_amount'] -= param['amount']
                         self.future_position['sell_available'] -= param['amount']
-                        self.future_position['sell_bond'] -= param['amount']/cfg.get_future_buy_lever()
+                        self.future_position['sell_bond'] -= param['amount']/self.future_position['lever_rate']
 
-                        self.user_info[self.get_coin1()]['contracts']['available'] += param['amount']/cfg.get_future_buy_lever()
-                        self.user_info[self.get_coin1()]['contracts']['bond'] -= param['amount']/cfg.get_future_buy_lever()
-                        profit = (param['price'] - self.future_position['buy_price_avg']) * param['amount']
-                        self.user_info[self.get_coin1()]['contracts']['profit'] += profit
+                        self.user_info[c1]['contracts'][0]['available'] += a/self.future_position['lever_rate']
+                        self.user_info[c1]['contracts'][0]['bond'] -= param['amount']/self.future_position['lever_rate']
+                        profit = (param['price'] - self.future_position['sell_price_avg'])/self.future_position['sell_price_avg'] * a
+                        self.user_info[c1]['contracts'][0]['profit'] += profit
+                        self.user_info[c1]['contracts'][0]['available'] += profit
+                log.dbg("update_variables... user_info:%s"%(self.user_info))
+                log.dbg("update_variables... future_position:%s"%(self.future_position))
+
         else:
             ##init or update directly
             if cfg.get_cfg_plat() == '': #reserve
@@ -154,7 +159,9 @@ class Robot():
                 if cfg.is_future():
                     self.user_info = fwk.get_user_info()
                     self.future_position = fwk.get_future_position(cfg.get_pair())
-                    log.dbg("update_variables... user_info:%s future_position:%s"%(self.user_info, self.future_position))
+                    log.dbg("update_variables... user_info:%s"%(self.user_info))
+                    log.dbg("update_variables... future_position:%s"%(self.future_position))
+
                 else:
                     pass
 
@@ -168,13 +175,12 @@ class Robot():
             ##record the trade history
             trade_param = [timestamp, type_key, price, amount, match_price]
             hist.info("%s"%trade_param)
-            sslot.trade_log(trade_param)
             self.update_variables(trade_param)
         
     def trade(self, timestamp, signal, bp, ba, sp, sa):
         price = amount = 0
         if signal == 'buy':
-            if cfg.get_cfg_plat() == 'okex':
+            #if cfg.get_cfg_plat() == 'okex':
                 if cfg.is_future():
                     if self.future_position['sell_available'] > 0:
                         #orders = fwk.list_orders(cfg.get_pair(), -1, 1) #
@@ -187,17 +193,17 @@ class Robot():
                     else:
                         contracts = self.user_info[cfg.get_coin1()]['contracts'][0]
                         a = contracts['available'] - (contracts['available'] + contracts['bond']) * 0.9
-                        if a > 0:
+                        if a > contracts['available']*0.01: ##避免手续费导致的总量减少造成误差
                             price = sp
                             amount = min(sa, a * cfg.get_future_buy_lever())
                             type_key = 'open_buy'
                 else:
                     pass
-            elif cfg.get_cfg_plat() == 'coinex':
-                pass
+            #elif cfg.get_cfg_plat() == 'coinex':
+            #    pass
 
         elif signal == 'sell':
-            if cfg.get_cfg_plat() == 'okex':
+            #if cfg.get_cfg_plat() == 'okex':
                 if cfg.is_future():
                     if self.future_position['buy_available'] > 0:
                         #orders = fwk.list_orders(cfg.get_pair(), -1, 1) #
@@ -208,37 +214,38 @@ class Robot():
                         price = bp
                         amount = min(ba, self.future_position['buy_available'])
                     else:
-                        contracts = self.user_info[self.get_coin1()]['contracts']
+                        contracts = self.user_info[cfg.get_coin1()]['contracts'][0]
                         a = contracts['available'] - (contracts['available'] + contracts['bond']) * 0.9
-                        if a > 0:
+                        if a > contracts['available']*0.01: ##避免手续费导致的总量减少造成误差
                             price = bp
                             amount = min(ba, a * cfg.get_future_sell_lever())
                             type_key = 'open_sell'
                 else: ###spot have no sell type
                     pass
-            elif cfg.get_cfg_plat() == 'coinex':
-                pass
+            #elif cfg.get_cfg_plat() == 'coinex':
+            #    pass
         else: ## standby
             pass
 
         if price > 0 and amount > 0:
             log.info("going to trade! type:%s price:%f, amount:%f"%(type_key, price, amount))
-            self._trade(timestamp, type_key, price, amount) 
+            self._trade(timestamp, type_key, price, amount)
 
     def handle_depth(self, timestamp, depth):
         bp = depth['buy'][0][0]  #price buy
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
         sa = depth['sell'][0][1] #amount sell
-        self.n_depth_handle += 1
-        if self.n_depth_handle%60 == 0:
-            ##logs
-            if cfg.is_future():
-                log.dbg("user_info:%s future_position:%s"%(self.user_info, self.future_position))
-                sslot.robot_log("user_info:%s future_position:%s"%(self.user_info, self.future_position))
-            else:
-                log.dbg("user_info:%s"%(self.user_info))
-                sslot.robot_log("user_info:%s"%(self.user_info))
+#        self.n_depth_handle += 1
+#        if self.n_depth_handle%60 == 0:
+#            ##logs
+#            if cfg.is_future():
+#                log.dbg("user_info:%s"%(self.user_info))
+#                log.dbg("future_position:%s"%(self.future_position))
+#                sslot.robot_log("user_info:%s future_position:%s"%(self.user_info, self.future_position))
+#            else:
+#                log.dbg("user_info:%s"%(self.user_info))
+#                sslot.robot_log("user_info:%s"%(self.user_info))
 
         gap = gaps(bp, sp)
         if gap > 0.2:
@@ -260,6 +267,25 @@ class Robot():
             signal = 'standby'
         log.dbg("get signal! %s"%signal)
         self.trade(timestamp, signal, bp, ba, sp, sa)
+
+        if self.simulate:
+            if cfg.is_future():
+                if self.future_position['buy_amount'] > 0:
+                    self.future_position['buy_profit_lossratio'] = ((bp+sp)/2 - self.future_position['buy_price_avg'])/self.future_position['buy_price_avg']
+                    self.future_position['buy_profit_real'] = self.future_position['buy_profit_lossratio'] * self.future_position['buy_amount']
+                else:
+                    self.future_position['buy_profit_lossratio'] = self.future_position['buy_profit_real'] = 0
+        
+                if self.future_position['sell_amount'] > 0:
+                    self.future_position['sell_profit_lossratio'] = ((bp+sp)/2 - self.future_position['sell_price_avg'])/self.future_position['sell_price_avg']
+                    self.future_position['sell_profit_real'] = self.future_position['sell_profit_lossratio'] * self.future_position['sell_amount']
+                else:
+                    self.future_position['sell_profit_lossratio'] = self.future_position['sell_profit_real'] = 0
+        
+                self.user_info[cfg.get_coin1()]['contracts'][0]['unprofit'] = self.future_position['buy_profit_real'] + self.future_position['sell_profit_real']
+
+        sslot.robot_status(1)
+
 
     def start(self):
         if self.running == 0:
@@ -292,17 +318,24 @@ class Robot():
             self.bbands.handle_data(kl_1hour)
             self.macd.handle_data(kl_1hour)
             self.stoch.handle_data(kl_1hour)
-            
-        #kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=min(days*24*60, 2000))
-        #if(kl_1min.size <= 0):
-        #    return
-        #p = kl_1min['c']
-        #t = kl_1min['t']
-        p = kl_1hour['c']
-        t = kl_1hour['t']
+
+        if True:
+            kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=min(days*24*60, 2000))
+            if(kl_1min.size <= 0):
+                return
+            p = kl_1min['c']
+            t = kl_1min['t']
+        else:
+            p = kl_1hour['c']
+            t = kl_1hour['t']
+
         for i in range(t.size):
             dummy_depth = {'buy':[[p[i]*0.999, 1000]],'sell':[[p[i]*1.001, 1000]]}
             self.handle_depth(t[i], dummy_depth)
+        log.dbg("test done... user_info:%s"%(self.user_info))
+        log.dbg("test done... future_position:%s"%(self.future_position))
+        sslot.trade_history(self.trade_history)
+        sslot.robot_status(1)
         self.testing = False
                 
 

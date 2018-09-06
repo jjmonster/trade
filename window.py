@@ -51,11 +51,12 @@ def ta_graphic(indicator, ax, *params):
 
     if len(params) > 1:
         hist = params[1]
-        if len(hist) > 0:
-            for i in range(len(hist)):
-                time = datetime.fromtimestamp(hist[i][0])
-                type = hist[i][1]
-                price = hist[i][2]
+        if hist.index.size > 0:
+            for i in hist.index:
+                row = hist.loc[i]
+                time = datetime.fromtimestamp(row['t'])
+                type = row['type']
+                price = row['price']
                 if type == 'open_buy':
                     cms = 'r+'
                 elif type == 'margin_buy' or type == 'loss_buy':
@@ -164,7 +165,7 @@ class AnalysisTab():
     def __init__(self):
         #super(AnalysisTab, self).__init__()
         self.kl = pd.DataFrame()
-        self.trade_history = []
+        self.trade_history = pd.DataFrame()
 
     def layout(self, parent):
         self.fig = plt.figure()
@@ -183,7 +184,7 @@ class AnalysisTab():
         self.stoch.start()
         #mkt.register_handle('depth', win.handle_depth)
         mkt.register_handle('kline', self.handle_kline)
-        sslot.register_trade_log(self.handle_trade_log)
+        sslot.register_trade_history(self.handle_trade_history)
         ###options handle
         sslot.register_indicator_select(self.indicator_select)
         sslot.register_plat_select(self.plat_select)
@@ -226,10 +227,8 @@ class AnalysisTab():
         self.kl = kl
         self.draw()
 
-    def handle_trade_log(self, log):
-        if len(self.trade_history) > 100:
-            self.trade_history.pop(0)
-        self.trade_history.append(log)
+    def handle_trade_history(self, hist):
+        self.trade_history = hist
         self.draw()
 
     def indicator_select(self, indicator):
@@ -256,7 +255,7 @@ class AnalysisTab():
         self.stoch.stop()
         mkt.unregister_handle('kline', self.handle_kline)
 #        mkt.unregister_handle('depth', self.handle_depth)
-        sslot.unregister_trade_log(self.handle_trade_log)
+        sslot.unregister_trade_history(self.handle_trade_history)
         ###options handle
         sslot.unregister_indicator_select(self.indicator_select)
         sslot.unregister_plat_select(self.plat_select)
@@ -364,6 +363,7 @@ class RobotTab():
         lf.pack(side=LEFT,fill=BOTH, expand=YES)
 
         #####
+        sslot.register_robot_status(self.handle_robot_status)
         sslot.register_robot_log(self.handle_robot_log)
 
     def start(self):
@@ -378,10 +378,35 @@ class RobotTab():
     def handle_robot_log(self, msg):
         self.scr.insert(END, msg+'\n')
         self.scr.see(END)
-#        for i in self.rbt.runtime_profit.keys():
-#            self.profitlist[i].config(text=i+':'+str(self.rbt.runtime_profit[i]))
-#        for i in self.rbt.amount_hold.keys():
-#            self.amountlist[i].config(text=i+':'+str(self.rbt.amount_hold[i]))
+
+    def handle_robot_status(self, status):
+        c1_info = self.rbt.user_info[cfg.get_coin1()]
+        for i in c1_info.keys():
+            if i == 'contracts':
+                for j in c1_info[i][0].keys():
+                    val = c1_info[i][0][j]
+                    if isinstance(val, str):
+                        text = j+': '+val
+                    else:
+                        text = j+': '+str(round(val, 6))
+                    self.infolist[j].config(text=text)
+
+            else:
+                val = c1_info[i]
+                if isinstance(val, str):
+                    text = i+': '+val
+                else:
+                    text = i+': '+str(round(val, 6))
+                self.infolist[i].config(text=text)
+
+        if cfg.is_future():
+            for i in self.rbt.future_position.keys():
+                val = self.rbt.future_position[i]
+                if isinstance(val, str):
+                    text = i+': '+val
+                else:
+                    text = i+': '+str(round(val, 6))
+                self.positionlist[i].config(text=text)
 
     def indicator_select(self, indicator):
         pass

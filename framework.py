@@ -122,7 +122,7 @@ class framework():
             else:
                 pass
         except:
-            log.err("Exception on get_depth! data:%s"%data)
+            log.err("Exception on %s get_depth! data:%s"%(pair,data))
         return depth
 
     def get_kline(self, pair, dtype, limit):
@@ -403,5 +403,5 @@ fwk = framework()
 
 if __name__ == '__main__':
     print(fwk.get_price(cfg.get_pair()))
-    print(fwk.get_kline(cfg.get_pair(), '1hour', 10))
+    #print(fwk.get_kline(cfg.get_pair(), '1hour', 10))
     print(fwk.get_depth(cfg.get_pair()))

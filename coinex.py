@@ -178,9 +178,9 @@ if __name__ == '__main__':
     """test this class"""
     #print(cet.acquire_market_data('CETUSDT'))
     #print(cet.acquire_market_data_all())
-    #print(cet.acquire_market_depth('CETUSDT'))
+    print(cet.acquire_market_depth('CETUSDT'))
     #print(cet.acquire_latest_transaction_data('CETUSDT'))
-    print(cet.acquire_K_line_data('CETUSDT'))
+    #print(cet.acquire_K_line_data('CETUSDT'))
     #print(cet.inquire_account_info())
     #print(cet.acquire_unfinished_order_list('CETUSDT'))
     #print(cet.acquire_finished_order_list('CETUSDT'))
