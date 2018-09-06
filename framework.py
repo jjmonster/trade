@@ -125,7 +125,7 @@ class framework():
             log.err("Exception on %s get_depth! data:%s"%(pair,data))
         return depth
 
-    def get_kline(self, pair, dtype, limit):
+    def get_kline(self, pair, dtype, limit, since=0):
         kl = pd.DataFrame()
         data = None
         try:
@@ -138,7 +138,7 @@ class framework():
             elif cfg.get_cfg_plat() == 'fcoin':
                 pass
             elif cfg.get_cfg_plat() == 'okex':
-                data = okb.kline(pair, dtype, limit)
+                data = okb.kline(pair, dtype, limit, since)
                 kl = pd.DataFrame(data, columns = ['t', 'o', 'h', 'l', 'c', 'v', 'a'])
             else:
                 pass
@@ -400,8 +400,11 @@ class framework():
         return pos
 
 fwk = framework()
-
 if __name__ == '__main__':
-    print(fwk.get_price(cfg.get_pair()))
-    #print(fwk.get_kline(cfg.get_pair(), '1hour', 10))
-    print(fwk.get_depth(cfg.get_pair()))
+    #print(fwk.get_price(cfg.get_pair()))
+    from datetime import datetime
+    kl = fwk.get_kline(cfg.get_pair(), '1hour', 10, 1536235000000)
+    for i in kl.index:
+        kl['t'][i] = datetime.fromtimestamp(kl['t'][i])
+    print(kl)
+    #print(fwk.get_depth(cfg.get_pair()))

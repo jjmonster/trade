@@ -174,6 +174,7 @@ class Macd(TechnicalAnalysis):
     def __init__(self, **params):
         super(Macd, self).__init__()
         self.params = dict({'fastperiod':12, 'slowperiod':26, 'signalperiod':9}, **params)
+        self.form = ''
 
     def start(self):
         mkt.register_handle('kline', self.handle_data)
@@ -190,7 +191,7 @@ class Macd(TechnicalAnalysis):
 
 
     def ta_form(self, timestamp, price):
-        self.form = ''
+        self.oldform = self.form
         df = self.get_data_timestamp(timestamp)
         if df.index.size < 3:
             return

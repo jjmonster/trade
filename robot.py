@@ -175,6 +175,7 @@ class Robot():
             ##record the trade history
             trade_param = [timestamp, type_key, price, amount, match_price]
             hist.info("%s"%trade_param)
+            sslot.robot_log("%s"%trade_param)
             self.update_variables(trade_param)
         
     def trade(self, timestamp, signal, bp, ba, sp, sa):
@@ -236,17 +237,7 @@ class Robot():
         ba = depth['buy'][0][1]  #amount buy
         sp = depth['sell'][0][0] #price sell
         sa = depth['sell'][0][1] #amount sell
-#        self.n_depth_handle += 1
-#        if self.n_depth_handle%60 == 0:
-#            ##logs
-#            if cfg.is_future():
-#                log.dbg("user_info:%s"%(self.user_info))
-#                log.dbg("future_position:%s"%(self.future_position))
-#                sslot.robot_log("user_info:%s future_position:%s"%(self.user_info, self.future_position))
-#            else:
-#                log.dbg("user_info:%s"%(self.user_info))
-#                sslot.robot_log("user_info:%s"%(self.user_info))
-
+        self.n_depth_handle += 1
         gap = gaps(bp, sp)
         if gap > 0.2:
             log.dbg("gap=%f low volume, don't operate!"%(gap))
@@ -265,7 +256,7 @@ class Robot():
             signal = self.stoch.sig
         else:
             signal = 'standby'
-        log.dbg("get signal! %s"%signal)
+        #log.dbg("get signal! %s"%signal)
         self.trade(timestamp, signal, bp, ba, sp, sa)
 
         if self.simulate:
@@ -284,7 +275,8 @@ class Robot():
         
                 self.user_info[cfg.get_coin1()]['contracts'][0]['unprofit'] = self.future_position['buy_profit_real'] + self.future_position['sell_profit_real']
 
-        sslot.robot_status(1)
+        if self.n_depth_handle%30 == 0:
+            sslot.robot_status(1)
 
 
     def start(self):
@@ -320,11 +312,11 @@ class Robot():
             self.stoch.handle_data(kl_1hour)
 
         if True:
-            kl_1min = fwk.get_kline(cfg.get_pair(), dtype="1min", limit=min(days*24*60, 2000))
-            if(kl_1min.size <= 0):
+            kl_5min = fwk.get_kline(cfg.get_pair(), dtype="5min", limit=min(days*24*60/5, 2000))
+            if(kl_5min.size <= 0):
                 return
-            p = kl_1min['c']
-            t = kl_1min['t']
+            p = kl_5min['c']
+            t = kl_5min['t']
         else:
             p = kl_1hour['c']
             t = kl_1hour['t']
