@@ -197,35 +197,35 @@ class Macd(TechnicalAnalysis):
             return
         macd = df['macd']
         m1,m2,m3 = macd.iloc[-3], macd.iloc[-2], macd.iloc[-1]
-        if m1 < m2:
-            if m2 < m3:     #||| #'rising'
-                self.form = 'f1'
-            elif m2 > m3:   #1|1
-                self.form = 'f2'
-        elif m1 > m2:
-            if m2 > m3:    #||| #'falling'
-                self.form = 'f3' 
-            elif m2 < m3:  #|1|
-                self.form = 'f4'
 
-        if self.form == 'f1' and m1 < macd.min()/3:
-            self.form = 'rising'
-        elif self.form == 'f3' and m1 > macd.max()/3:
-            self.form = 'falling'
-
-        if self.form != 'rising' and self.form != 'falling':
-            if m1 < 0 and m2 > 0 and m3 > m2: #crossing up
+        if m1 < m2 and m2 < m3: #rising
+            if m3 < 0:
+                self.form = 'down rising'
+            elif m1 > 0:
+                self.form = 'up rising'
+            elif m1 < 0 and m2 > 0:
+                self.form = 'crossing up'
+            else:
                 self.form = 'rising'
-            elif m1 > 0 and m2 < 0 and m3 < m2: #crossing down
+        elif m1 > m2 and m2 > m3: #falling
+            if m3 > 0:
+                self.form = 'up falling'
+            elif m1 < 0:
+                self.form = 'down falling'
+            elif m1 > 0 and m2 < 0:
+                self.form = 'crossing down'
+            else:
                 self.form = 'falling'
+        else:
+            self.form = 'unstable'
 
         return self.form
 
     def ta_signal(self, timestamp, price):
         self.ta_form(timestamp, price)
-        if self.form == 'rising':
+        if self.form == 'crossing up':
             self.sig = 'buy'
-        elif self.form == 'falling':
+        elif self.form == 'crossing down':
             self.sig = 'sell'
         else:
             self.sig = 'standby'
@@ -281,9 +281,9 @@ class Stoch(TechnicalAnalysis):
         
     def ta_signal(self, timestamp, price):
         self.ta_form(timestamp, price)
-        if self.form == 'oversell' or self.form == 'crossup':
+        if self.form == 'oversell':# or self.form == 'crossup':
             self.sig = 'buy'
-        elif self.form == 'overbuy' or self.form == 'crossdown':
+        elif self.form == 'overbuy':# or self.form == 'crossdown':
             self.sig = 'sell'
         else:
             self.sig = 'standby'

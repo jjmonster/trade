@@ -20,8 +20,18 @@ class framework():
         data = None
         try:
             if cfg.get_cfg_plat() == 'coinex':
-                data = cet.acquire_market_list()
-                pairs = [item.lower() for item in data]
+                if False:
+                    data = cet.acquire_market_list()
+                    pairs = [item.lower() for item in data]
+                else:
+                    coin1 = ['btc','ltc','eth','etc','bch','btg','xrp','eos']
+                    coin2 = ['usdt']
+                    for i in coin1:
+                        for j in coin2:
+                            if i == j:
+                                continue
+                            else:
+                                pairs.append(i+j)                
             elif cfg.get_cfg_plat() == 'fcoin':
                 pass
             elif cfg.get_cfg_plat() == 'okex':

@@ -327,41 +327,26 @@ class RobotTab():
         lf = LabelFrame(parent, text='Status')
         if cfg.is_future():
             lf1 = LabelFrame(lf, text='user_info',labelanchor=W)
-            self.infolist = {}
-            c1_info = self.rbt.user_info[cfg.get_coin1()]
-            for i in c1_info.keys():
-                if i == 'contracts':
-                    for j in c1_info[i][0].keys():
-                        self.infolist[j] =  Label(lf1, text=j+': '+str(c1_info[i][0][j]), width=20)
-                        self.infolist[j].pack()
-                else:
-                    self.infolist[i] = Label(lf1, text=i+': '+str(c1_info[i]), width=20)
-                    self.infolist[i].pack()
+            self.infolist = Label(lf1, text='', width=25, height=25, padx=2, pady=10, anchor=NW, justify=LEFT)
+            self.infolist.pack()
             lf1.pack(side=TOP,fill=X, expand=YES)
 
             if cfg.is_future():
                 lf2 = LabelFrame(lf, text='position',labelanchor=W)
-                self.positionlist = {}
-                for i in self.rbt.future_position.keys():
-                    self.positionlist[i] = Label(lf2, text=i+': '+str(self.rbt.future_position[i]), width=20)
-                    self.positionlist[i].pack()
+                self.positionlist = Label(lf2, text='', width=25, height=25, padx=2, pady=10, anchor=NW, justify=LEFT)
+                self.positionlist.pack()
                 lf2.pack(side=TOP,fill=X, expand=YES)
-
         lf.pack(side=LEFT,fill=BOTH, expand=YES)
-
+        self.handle_robot_status(0)
         #########
         lf = LabelFrame(parent, text='Paramters')
-        
-        
         lf.pack(side=LEFT,fill=BOTH, expand=YES)
-        
         #########
         lf = LabelFrame(parent, text='Action')
         ttk.Button(lf,text='start',command=self.start).pack()
         ttk.Button(lf,text='stop',command=self.stop).pack()
         ttk.Button(lf,text='testback',command=self.testback).pack()
         lf.pack(side=LEFT,fill=BOTH, expand=YES)
-
         #####
         sslot.register_robot_status(self.handle_robot_status)
         sslot.register_robot_log(self.handle_robot_log)
@@ -381,32 +366,33 @@ class RobotTab():
 
     def handle_robot_status(self, status):
         c1_info = self.rbt.user_info[cfg.get_coin1()]
+        text = ''
         for i in c1_info.keys():
             if i == 'contracts':
                 for j in c1_info[i][0].keys():
                     val = c1_info[i][0][j]
                     if isinstance(val, str):
-                        text = j+': '+val
+                        text += j+': '+val+'\n'
                     else:
-                        text = j+': '+str(round(val, 6))
-                    self.infolist[j].config(text=text)
-
+                        text += j+': '+str(round(val, 6))+'\n'
             else:
                 val = c1_info[i]
                 if isinstance(val, str):
-                    text = i+': '+val
+                    text += i+': '+val+'\n'
                 else:
-                    text = i+': '+str(round(val, 6))
-                self.infolist[i].config(text=text)
+                    text += i+': '+str(round(val, 6))+'\n'
 
+        self.infolist.config(text=text)
+
+        text = ''
         if cfg.is_future():
             for i in self.rbt.future_position.keys():
                 val = self.rbt.future_position[i]
                 if isinstance(val, str):
-                    text = i+': '+val
+                    text += i+': '+val+'\n'
                 else:
-                    text = i+': '+str(round(val, 6))
-                self.positionlist[i].config(text=text)
+                    text += i+': '+str(round(val, 6))+'\n'
+            self.positionlist.config(text=text)
 
     def indicator_select(self, indicator):
         pass
